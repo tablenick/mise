@@ -26,11 +26,19 @@
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body {
     font-family: 'DM Sans', sans-serif;
-    background: var(--cream);
+    background: #E8E0D4;
     color: var(--ink);
     min-height: 100vh;
+    margin: 0;
+  }
+
+  .app-wrap {
     max-width: 480px;
     margin: 0 auto;
+    min-height: 100vh;
+    position: relative;
+    background: var(--cream);
+    box-shadow: 0 0 60px rgba(0,0,0,0.15);
   }
 
   .app-header {
@@ -294,6 +302,7 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
+<div class="app-wrap">
 
 <div class="app-header">
   <h1>Mise <em style="font-size:14px;font-style:normal;opacity:0.5;margin-left:4px">en place</em></h1>
@@ -1072,5 +1081,6 @@ function showStatus(id,msg,type){
 
 renderRecipes();renderList();updateListDot();initGitHubConfig();
 </script>
+</div><!-- /app-wrap -->
 </body>
 </html>
