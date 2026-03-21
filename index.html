@@ -54,7 +54,7 @@ body {
   max-width: 500px;
   margin: 0 auto;
   min-height: 100vh;
-  padding-top: 130px;
+  padding-top: 160px;
 }
 
 /* ── Header ── */
@@ -649,6 +649,21 @@ body {
       <p id="ocr-msg" style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:10px;display:none"></p>
       <div style="height:1px;background:var(--border);margin-bottom:14px"></div>
 
+      <!-- Website URL import -->
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <input id="url-import-input"
+          style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 13px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none"
+          placeholder="Paste recipe URL…"
+          onkeydown="if(event.key==='Enter')scrapeRecipeURL()"
+          onfocus="this.style.borderColor='var(--accent)'"
+          onblur="this.style.borderColor='var(--border)'" />
+        <button class="btn btn-primary" id="url-scrape-btn" onclick="scrapeRecipeURL()" style="padding:10px 14px;white-space:nowrap">
+          <span id="url-scrape-label">Import</span>
+        </button>
+      </div>
+      <p id="url-scrape-msg" style="font-size:12px;color:var(--muted);margin-bottom:10px;min-height:16px"></p>
+      <div style="height:1px;background:var(--border);margin-bottom:14px"></div>
+
       <div class="field">
         <label>Recipe Name</label>
         <input id="add-name" placeholder="e.g. Roast Chicken" />
@@ -909,6 +924,8 @@ function clearAddForm() {
     document.getElementById(id).value = '';
   });
   document.getElementById('add-servings').value = '4';
+  document.getElementById('url-import-input').value = '';
+  setUrlMsg('');
   document.getElementById('add-category').value = 'Dinner';
   clearPhoto();
 }
@@ -1562,6 +1579,187 @@ function parseOCRText(text) {
   if (method.length)      document.getElementById('add-method').value      = method.join('\n');
 }
 
+
+// ════════════════════════════════════════
+//  WEBSITE RECIPE SCRAPER (JSON-LD + fallback)
+// ════════════════════════════════════════
+async function scrapeRecipeURL() {
+  const urlInput = document.getElementById('url-import-input');
+  const url      = urlInput.value.trim();
+  if (!url) return setUrlMsg('Paste a recipe URL first.', 'error');
+
+  const btn   = document.getElementById('url-scrape-btn');
+  const label = document.getElementById('url-scrape-label');
+  btn.disabled = true;
+  label.innerHTML = '<span class="spinner"></span>';
+  setUrlMsg('Fetching page…');
+
+  try {
+    // Use allorigins CORS proxy to fetch the page HTML
+    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+    const res      = await fetch(proxyUrl);
+    if (!res.ok) throw new Error('Could not fetch page (status ' + res.status + ')');
+    const data     = await res.json();
+    const html     = data.contents;
+    if (!html) throw new Error('Empty response from page');
+
+    setUrlMsg('Parsing recipe data…');
+
+    const recipe = parseRecipeFromHTML(html, url);
+    if (!recipe) throw new Error('No recipe found on this page. Try a different recipe site.');
+
+    // Fill form fields
+    if (recipe.name)        document.getElementById('add-name').value        = recipe.name;
+    if (recipe.source)      document.getElementById('add-source').value      = recipe.source;
+    if (recipe.servings)    document.getElementById('add-servings').value    = recipe.servings;
+    if (recipe.category)    document.getElementById('add-category').value    = recipe.category;
+    if (recipe.tags)        document.getElementById('add-tags').value        = recipe.tags;
+    if (recipe.ingredients) document.getElementById('add-ingredients').value = recipe.ingredients;
+    if (recipe.method)      document.getElementById('add-method').value      = recipe.method;
+
+    setUrlMsg('✓ Recipe imported — review and edit below, then save.', 'success');
+    toast('Recipe imported!', 'success');
+    urlInput.value = '';
+  } catch(err) {
+    console.error(err);
+    setUrlMsg('✗ ' + err.message, 'error');
+    toast('Import failed', 'error');
+  } finally {
+    btn.disabled = false;
+    label.innerHTML = 'Import';
+  }
+}
+
+function setUrlMsg(msg, type) {
+  const el = document.getElementById('url-scrape-msg');
+  el.textContent = msg;
+  el.style.color  = type === 'error'   ? 'var(--red)'    :
+                    type === 'success'  ? 'var(--green)'  : 'var(--muted)';
+}
+
+function parseRecipeFromHTML(html, sourceUrl) {
+  // ── Strategy 1: JSON-LD schema.org/Recipe (most recipe sites) ──
+  const jsonLdMatches = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
+
+  for (const block of jsonLdMatches) {
+    try {
+      const innerMatch = block.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
+      if (!innerMatch) continue;
+      const parsed = JSON.parse(innerMatch[1]);
+
+      // Handle arrays and @graph wrappers
+      const candidates = [];
+      if (Array.isArray(parsed)) {
+        candidates.push(...parsed);
+      } else if (parsed['@graph']) {
+        candidates.push(...parsed['@graph']);
+      } else {
+        candidates.push(parsed);
+      }
+
+      for (const item of candidates) {
+        if (item['@type'] === 'Recipe' || (Array.isArray(item['@type']) && item['@type'].includes('Recipe'))) {
+          return extractFromJsonLd(item, sourceUrl);
+        }
+      }
+    } catch(e) { /* try next block */ }
+  }
+
+  // ── Strategy 2: microdata / meta tags fallback ──
+  return extractFromMeta(html, sourceUrl);
+}
+
+function extractFromJsonLd(item, sourceUrl) {
+  // Name
+  const name = item.name || '';
+
+  // Source
+  const source = (item.isPartOf && item.isPartOf.name) || extractDomain(sourceUrl);
+
+  // Servings
+  let servings = 4;
+  const yield_ = item.recipeYield;
+  if (yield_) {
+    const num = Array.isArray(yield_) ? yield_[0] : yield_;
+    const parsed = parseInt(String(num));
+    if (!isNaN(parsed) && parsed > 0) servings = parsed;
+  }
+
+  // Category → map to our list
+  const catRaw = (Array.isArray(item.recipeCategory) ? item.recipeCategory[0] : item.recipeCategory) || '';
+  const category = mapCategory(catRaw);
+
+  // Tags / keywords
+  let tags = '';
+  if (item.keywords) {
+    const raw = Array.isArray(item.keywords) ? item.keywords.join(', ') : item.keywords;
+    tags = raw.split(/[,;]/).map(t => t.trim()).filter(Boolean).slice(0, 6).join(', ');
+  }
+
+  // Ingredients
+  const ingRaw = item.recipeIngredient || [];
+  const ingredients = ingRaw.map(i => stripHtml(i).trim()).filter(Boolean).join('\n');
+
+  // Method
+  const instrRaw = item.recipeInstructions || [];
+  let method = '';
+  if (typeof instrRaw === 'string') {
+    method = stripHtml(instrRaw).split('\n').map(l => l.trim()).filter(Boolean).join('\n');
+  } else if (Array.isArray(instrRaw)) {
+    const steps = instrRaw.flatMap(s => {
+      if (typeof s === 'string') return [stripHtml(s).trim()];
+      if (s['@type'] === 'HowToStep') return [stripHtml(s.text || s.name || '').trim()];
+      if (s['@type'] === 'HowToSection' && s.itemListElement) {
+        return s.itemListElement.map(sub => stripHtml(sub.text || sub.name || '').trim());
+      }
+      return [];
+    }).filter(Boolean);
+    method = steps.join('\n');
+  }
+
+  if (!name && !ingredients) return null;
+  return { name, source, servings, category, tags, ingredients, method };
+}
+
+function extractFromMeta(html, sourceUrl) {
+  // Last resort: try to find recipe name from og:title or <title>
+  const ogTitle  = (html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i) || [])[1];
+  const title    = (html.match(/<title[^>]*>([^<]+)<\/title>/i) || [])[1];
+  const name     = stripHtml(ogTitle || title || '').trim();
+  if (!name) return null;
+  return {
+    name,
+    source:      extractDomain(sourceUrl),
+    servings:    4,
+    category:    'Dinner',
+    tags:        '',
+    ingredients: '',
+    method:      ''
+  };
+}
+
+function mapCategory(raw) {
+  const r = (raw || '').toLowerCase();
+  if (/breakfast|brunch|morning/.test(r))       return 'Breakfast';
+  if (/lunch|sandwich|wrap|salad/.test(r))       return 'Lunch';
+  if (/dessert|cake|cookie|sweet|bak/.test(r))   return 'Dessert';
+  if (/snack|appetizer|starter|dip/.test(r))     return 'Snack';
+  if (/side|vegetable|veg/.test(r))              return 'Side';
+  if (/bak|bread|pastry/.test(r))                return 'Baking';
+  if (/dinner|supper|main|entree/.test(r))       return 'Dinner';
+  return 'Dinner';
+}
+
+function stripHtml(str) {
+  return (str || '').replace(/<[^>]+>/g, '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').replace(/&#39;/g,"'").replace(/&quot;/g,'"').trim();
+}
+
+function extractDomain(url) {
+  try { return new URL(url).hostname.replace('www.', ''); }
+  catch { return url; }
+}
+
+
 // ════════════════════════════════════════
 //  EDIT RECIPE
 // ════════════════════════════════════════
@@ -1592,6 +1790,15 @@ function openEdit() {
 
 // Init badge
 updateListBadge();
+
+// Dynamically match app padding-top to fixed header height
+function fixHeaderOffset() {
+  const bar = document.querySelector('.app-header-fixed');
+  const app = document.querySelector('.app');
+  if (bar && app) app.style.paddingTop = (bar.offsetHeight + 8) + 'px';
+}
+fixHeaderOffset();
+window.addEventListener('resize', fixHeaderOffset);
 </script>
 <!-- ══ SHOPPING LIST PANEL ══ -->
 <div class="panel-overlay" id="shop-panel">
