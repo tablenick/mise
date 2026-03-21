@@ -1594,21 +1594,45 @@ async function scrapeRecipeURL() {
   label.innerHTML = '<span class="spinner"></span>';
   setUrlMsg('Fetching page…');
 
+  // Try multiple CORS proxies in sequence
+  const proxies = [
+    u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+    u => `https://thingproxy.freeboard.io/fetch/${u}`,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  ];
+
+  let html = null;
+  for (const makeUrl of proxies) {
+    try {
+      setUrlMsg('Fetching page…');
+      const res = await fetch(makeUrl(url), { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) continue;
+      const text = await res.text();
+      // allorigins returns JSON, others return raw HTML
+      if (text.trim().startsWith('{')) {
+        try { html = JSON.parse(text).contents || JSON.parse(text).html || text; }
+        catch { html = text; }
+      } else {
+        html = text;
+      }
+      if (html && html.length > 500) break; // got real content
+    } catch(e) {
+      console.warn('Proxy failed:', e.message);
+    }
+  }
+
+  if (!html || html.length < 500) {
+    setUrlMsg('✗ Could not fetch this page. Try the Cloudflare Worker option below.', 'error');
+    btn.disabled = false;
+    label.innerHTML = 'Import';
+    return;
+  }
+
   try {
-    // Use allorigins CORS proxy to fetch the page HTML
-    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
-    const res      = await fetch(proxyUrl);
-    if (!res.ok) throw new Error('Could not fetch page (status ' + res.status + ')');
-    const data     = await res.json();
-    const html     = data.contents;
-    if (!html) throw new Error('Empty response from page');
-
     setUrlMsg('Parsing recipe data…');
-
     const recipe = parseRecipeFromHTML(html, url);
-    if (!recipe) throw new Error('No recipe found on this page. Try a different recipe site.');
+    if (!recipe) throw new Error('No recipe found — this site may not use standard recipe markup.');
 
-    // Fill form fields
     if (recipe.name)        document.getElementById('add-name').value        = recipe.name;
     if (recipe.source)      document.getElementById('add-source').value      = recipe.source;
     if (recipe.servings)    document.getElementById('add-servings').value    = recipe.servings;
@@ -1621,7 +1645,6 @@ async function scrapeRecipeURL() {
     toast('Recipe imported!', 'success');
     urlInput.value = '';
   } catch(err) {
-    console.error(err);
     setUrlMsg('✗ ' + err.message, 'error');
     toast('Import failed', 'error');
   } finally {
@@ -1629,6 +1652,7 @@ async function scrapeRecipeURL() {
     label.innerHTML = 'Import';
   }
 }
+
 
 function setUrlMsg(msg, type) {
   const el = document.getElementById('url-scrape-msg');
