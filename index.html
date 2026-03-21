@@ -594,8 +594,7 @@ async function pullFromGitHub() {
 
   try {
     const data    = await ghRequest('/repos/' + cfg.user + '/' + cfg.repo + '/contents/recipes.json');
-    const decoded = decodeURIComponent(escape(atob(data.content.replace(/
-/g, ''))));
+    const decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
     const pulled  = JSON.parse(decoded);
     if (!Array.isArray(pulled)) throw new Error('Invalid recipes format');
     recipes = pulled;
