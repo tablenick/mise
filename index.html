@@ -30,27 +30,39 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
+  margin: 0;
+}
+
+/* Fixed header outside scroll */
+.app-header-fixed {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 200;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.app-header-inner {
+  width: 100%;
+  max-width: 500px;
+  padding: 0 20px;
 }
 
 .app {
   max-width: 500px;
   margin: 0 auto;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  padding-top: 130px;
 }
 
 /* ── Header ── */
 .header {
-  padding: 20px 20px 0;
+  padding: 16px 0 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: sticky;
-  top: 0;
-  background: var(--bg);
-  z-index: 50;
-  padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
 }
 .header-title {
@@ -80,7 +92,7 @@ body {
 
 /* ── Search bar ── */
 .search-wrap {
-  padding: 12px 20px;
+  padding: 10px 0;
   background: var(--bg);
 }
 .search-input {
@@ -110,7 +122,7 @@ body {
 
 /* ── Recipe grid ── */
 .recipe-grid {
-  padding: 16px 20px 100px;
+  padding: 16px 20px 120px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
@@ -584,28 +596,31 @@ body {
   .ocr-progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 99px; transition: width 0.3s; }
 
 </style>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
-<div class="app">
-
-  <!-- Header -->
-  <div class="header">
-    <div class="header-title">My <em>Cookbook</em></div>
-    <div class="header-actions">
-      <button class="icon-btn" onclick="openShopList()" title="Shopping list" id="shop-btn">🛒</button>
-      <button class="icon-btn" onclick="openSync()" title="Sync">☁️</button>
+<!-- Fixed header + search bar -->
+<div class="app-header-fixed">
+  <div class="app-header-inner">
+    <div class="header">
+      <div class="header-title">My <em>Cookbook</em></div>
+      <div class="header-actions">
+        <button class="icon-btn" onclick="openShopList()" title="Shopping list" id="shop-btn">🛒</button>
+        <button class="icon-btn" onclick="openSync()" title="Sync">☁️</button>
+      </div>
+    </div>
+    <div class="search-wrap" style="position:relative">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="search" placeholder="Search recipes…" oninput="renderGrid()" />
     </div>
   </div>
+</div>
 
-  <!-- Search -->
-  <div class="search-wrap" style="position:relative">
-    <span class="search-icon">🔍</span>
-    <input class="search-input" id="search" placeholder="Search recipes…" oninput="renderGrid()" />
-  </div>
-
+<!-- Scrollable content -->
+<div class="app">
   <!-- Recipe grid -->
   <div class="recipe-grid" id="grid"></div>
-
 </div><!-- /app -->
 
 <!-- FAB -->
@@ -628,7 +643,7 @@ body {
         <input type="file" id="photo-file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%" onchange="handlePhotoUpload(event)" onclick="event.stopPropagation()" />
         <div class="photo-zone-icon">📷</div>
         <div class="photo-zone-title">Import from photo</div>
-        <div class="photo-zone-sub">Take a photo or screenshot of a recipe<br>AI fills in the fields automatically</div>
+        <div class="photo-zone-sub">Take a photo or screenshot of a recipe<br>Tesseract OCR reads it locally · free</div>
       </div>
       <div class="ocr-progress" id="ocr-progress"><div class="ocr-progress-fill" id="ocr-fill"></div></div>
       <p id="ocr-msg" style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:10px;display:none"></p>
@@ -1416,7 +1431,7 @@ function clearPhoto(event) {
   zone.innerHTML = `<input type="file" id="photo-file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%" onchange="handlePhotoUpload(event)" onclick="event.stopPropagation()" />
     <div class="photo-zone-icon">📷</div>
     <div class="photo-zone-title">Import from photo</div>
-    <div class="photo-zone-sub">Take a photo or screenshot of a recipe<br>AI fills in the fields automatically</div>`;
+    <div class="photo-zone-sub">Take a photo or screenshot of a recipe<br>Tesseract OCR reads it locally · free</div>`;
 }
 
 function setOcrMsg(msg, show=true) {
@@ -1425,74 +1440,126 @@ function setOcrMsg(msg, show=true) {
   el.style.display = show ? 'block' : 'none';
 }
 
+let tWorker = null;
+
+async function getTWorker() {
+  if (!tWorker) {
+    tWorker = await Tesseract.createWorker('eng', 1, {
+      logger: m => {
+        const prog = document.getElementById('ocr-fill');
+        if (!prog) return;
+        if (m.status === 'loading tesseract core')       prog.style.width = Math.round((m.progress||0)*25) + '%';
+        else if (m.status === 'initializing tesseract')  prog.style.width = Math.round(25+(m.progress||0)*25) + '%';
+        else if (m.status === 'loading language traineddata') prog.style.width = Math.round(50+(m.progress||0)*30) + '%';
+        else if (m.status === 'recognizing text')        prog.style.width = Math.round(80+(m.progress||0)*18) + '%';
+      }
+    });
+  }
+  return tWorker;
+}
+
 async function extractRecipeFromPhoto() {
   if (!photoBase64) return;
   const progress = document.getElementById('ocr-progress');
   const fill     = document.getElementById('ocr-fill');
   progress.style.display = 'block';
-  fill.style.width = '20%';
-  setOcrMsg('Reading recipe from photo…');
-
-  const prompt = `This is a photo of a recipe from a cookbook or screenshot. Extract the complete recipe and return ONLY valid JSON, no markdown:
-{
-  "name": "Recipe name",
-  "source": "Book or website name if visible",
-  "servings": 4,
-  "category": "Dinner",
-  "tags": ["tag1"],
-  "ingredients": ["200g chicken breast", "2 cloves garlic"],
-  "method": ["Preheat oven to 200C.", "Season the chicken."]
-}
-
-category must be one of: Dinner, Lunch, Breakfast, Dessert, Snack, Side, Baking, Other
-ingredients: each as a single string "qty unit name"
-method: each step as a single string
-If anything is unclear, make a reasonable guess. Return only the JSON object.`;
+  fill.style.width = '5%';
+  setOcrMsg('Loading OCR engine…');
 
   try {
-    fill.style.width = '50%';
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: photoBase64 } },
-            { type: 'text',  text: prompt }
-          ]
-        }]
-      })
+    // Create worker with progress tracking
+    const worker = await Tesseract.createWorker('eng', 1, {
+      logger: m => {
+        const stages = {
+          'loading tesseract core':      10,
+          'initializing tesseract':      25,
+          'loading language traineddata':50,
+          'initializing api':            70,
+          'recognizing text':            Math.round(70 + (m.progress || 0) * 28)
+        };
+        const pct = stages[m.status];
+        if (pct !== undefined) {
+          fill.style.width = pct + '%';
+          const labels = {
+            'loading tesseract core':      'Loading OCR engine…',
+            'initializing tesseract':      'Initialising…',
+            'loading language traineddata':'Downloading language model…',
+            'initializing api':            'Preparing…',
+            'recognizing text':            'Reading text… ' + Math.round((m.progress||0)*100) + '%'
+          };
+          setOcrMsg(labels[m.status] || m.status);
+        }
+      }
     });
-    fill.style.width = '80%';
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    const raw   = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-    const match = raw.replace(/```json|```/g, '').trim().match(/\{[\s\S]*\}/);
-    if (!match) throw new Error('No recipe data found');
-    const r = JSON.parse(match[0]);
 
-    // Fill form fields
-    if (r.name)     document.getElementById('add-name').value     = r.name;
-    if (r.source)   document.getElementById('add-source').value   = r.source;
-    if (r.servings) document.getElementById('add-servings').value = r.servings;
-    if (r.category) document.getElementById('add-category').value = r.category;
-    if (r.tags)     document.getElementById('add-tags').value     = (r.tags || []).join(', ');
-    if (r.ingredients) document.getElementById('add-ingredients').value = (r.ingredients || []).join('\n');
-    if (r.method)      document.getElementById('add-method').value      = (r.method || []).join('\n');
+    setOcrMsg('Reading recipe text…');
+    const imageDataUrl = 'data:image/jpeg;base64,' + photoBase64;
+    const { data: { text } } = await worker.recognize(imageDataUrl);
+    await worker.terminate();
 
     fill.style.width = '100%';
-    setOcrMsg('✓ Recipe extracted — review and edit below before saving.');
-    toast('Recipe extracted from photo!', 'success');
+    setOcrMsg('Parsing ingredients and method…');
+
+    // Parse the raw OCR text into recipe fields
+    parseOCRText(text.trim());
+
+    setOcrMsg('✓ Done — review and edit the fields below, then save.');
+    toast('Recipe extracted!', 'success');
   } catch(err) {
     console.error(err);
-    setOcrMsg('Could not read recipe: ' + err.message + ' — fill in manually below.');
-    toast('Photo extraction failed', 'error');
+    setOcrMsg('OCR error: ' + err.message + ' — fill in manually below.');
+    toast('Could not read image', 'error');
   } finally {
-    setTimeout(() => { progress.style.display = 'none'; fill.style.width = '0%'; }, 1500);
+    setTimeout(() => { progress.style.display = 'none'; fill.style.width = '0%'; }, 2000);
   }
+}
+
+function parseOCRText(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 1);
+  if (!lines.length) return;
+
+  // First non-trivial line is likely the recipe name
+  const nameLine = lines.find(l => l.length > 3 && !/^(ingredient|method|step|instruction|serve|makes)/i.test(l));
+  if (nameLine) document.getElementById('add-name').value = nameLine;
+
+  // Split into ingredients vs method sections
+  let inIngredients = false;
+  let inMethod      = false;
+  const ingredients = [];
+  const method      = [];
+
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+
+    // Section headers
+    if (/^(ingredients?|you.?ll need|what you need)/i.test(lower)) { inIngredients = true; inMethod = false; continue; }
+    if (/^(method|instructions?|steps?|directions?|how to|preparation)/i.test(lower)) { inIngredients = false; inMethod = true; continue; }
+
+    // Skip the name line already used
+    if (line === nameLine && ingredients.length === 0 && method.length === 0) continue;
+
+    // Classify lines
+    const isIngredient = inIngredients ||
+      /^\d|^[¼½¾]|^\d+\s*(g|kg|ml|l|tsp|tbsp|cup|oz|lb|bunch|clove|slice|piece)/i.test(line) ||
+      /\d+\s*(g|kg|ml|l|tsp|tbsp|cup|oz|lb)/i.test(line);
+
+    const isStep = inMethod ||
+      /^(step\s*)?\d+[.)]/i.test(line) ||
+      /^(preheat|heat|mix|add|stir|cook|bake|roast|season|combine|place|pour|bring|remove|slice|chop|dice|drain|rinse|let|allow|serve|transfer)/i.test(line);
+
+    const clean = line.replace(/^[•\-\*○▪]+\s*/, '').trim();
+
+    if (isStep && !isIngredient) {
+      method.push(clean.replace(/^(step\s*)?\d+[.)]\s*/i, ''));
+    } else if (isIngredient || (!isStep && ingredients.length > 0 && method.length === 0)) {
+      ingredients.push(clean);
+    } else if (method.length > 0) {
+      method.push(clean);
+    }
+  }
+
+  if (ingredients.length) document.getElementById('add-ingredients').value = ingredients.join('\n');
+  if (method.length)      document.getElementById('add-method').value      = method.join('\n');
 }
 
 // ════════════════════════════════════════
