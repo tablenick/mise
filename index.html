@@ -82,9 +82,6 @@ body {
 .search-wrap {
   padding: 12px 20px;
   background: var(--bg);
-  position: sticky;
-  top: 71px;
-  z-index: 49;
 }
 .search-input {
   width: 100%;
@@ -113,7 +110,7 @@ body {
 
 /* ── Recipe grid ── */
 .recipe-grid {
-  padding: 12px 20px 100px;
+  padding: 16px 20px 100px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
@@ -539,6 +536,53 @@ body {
   .add-item-row input:focus { border-color: var(--accent); }
   .add-item-row input::placeholder { color: var(--muted); }
 
+
+  /* Edit button */
+  .detail-edit {
+    position: absolute; top: 16px; right: 62px;
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    border: none; color: var(--accent2);
+    font-size: 17px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+
+  /* Photo import */
+  .photo-import-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 18px 16px;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: border-color 0.2s, background 0.2s;
+    background: var(--bg);
+    position: relative;
+  }
+  .photo-import-zone:hover { border-color: var(--accent); background: rgba(224,123,63,0.05); }
+  .photo-import-zone.has-image { border-color: var(--accent); padding: 0; overflow: hidden; }
+  .photo-import-zone img { width: 100%; max-height: 180px; object-fit: cover; display: block; border-radius: 10px; }
+  .photo-import-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .photo-zone-icon { font-size: 28px; margin-bottom: 6px; }
+  .photo-zone-title { font-size: 14px; font-weight: 700; color: var(--accent2); margin-bottom: 2px; }
+  .photo-zone-sub { font-size: 12px; color: var(--muted); }
+  .photo-overlay-clear {
+    position: absolute; top: 8px; right: 8px;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(0,0,0,0.6); color: #fff;
+    border: none; font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2;
+  }
+  .ocr-progress {
+    margin-top: 10px; margin-bottom: 4px;
+    height: 4px; background: var(--surface2); border-radius: 99px; overflow: hidden; display: none;
+  }
+  .ocr-progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 99px; transition: width 0.3s; }
+
 </style>
 </head>
 <body>
@@ -575,10 +619,21 @@ body {
   <div class="panel">
     <div class="panel-handle"></div>
     <div class="panel-header">
-      <span class="panel-title">Add Recipe</span>
+      <span class="panel-title" id="add-panel-title">Add Recipe</span>
       <button class="close-btn" onclick="closeAdd()">✕</button>
     </div>
     <div class="panel-body">
+      <!-- Photo import -->
+      <div id="photo-zone" class="photo-import-zone" onclick="document.getElementById('photo-file').click()">
+        <input type="file" id="photo-file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%" onchange="handlePhotoUpload(event)" onclick="event.stopPropagation()" />
+        <div class="photo-zone-icon">📷</div>
+        <div class="photo-zone-title">Import from photo</div>
+        <div class="photo-zone-sub">Take a photo or screenshot of a recipe<br>AI fills in the fields automatically</div>
+      </div>
+      <div class="ocr-progress" id="ocr-progress"><div class="ocr-progress-fill" id="ocr-fill"></div></div>
+      <p id="ocr-msg" style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:10px;display:none"></p>
+      <div style="height:1px;background:var(--border);margin-bottom:14px"></div>
+
       <div class="field">
         <label>Recipe Name</label>
         <input id="add-name" placeholder="e.g. Roast Chicken" />
@@ -620,7 +675,7 @@ body {
       </div>
       <div class="btn-row" style="margin-top:4px">
         <button class="btn btn-secondary" style="flex:1" onclick="closeAdd()">Cancel</button>
-        <button class="btn btn-primary" style="flex:1" onclick="saveRecipe()">Save Recipe</button>
+        <button class="btn btn-primary" style="flex:1" id="save-recipe-btn" onclick="saveRecipe()">Save Recipe</button>
       </div>
     </div>
   </div>
@@ -630,6 +685,7 @@ body {
 <div class="detail-view" id="detail-view">
   <div class="detail-hero" id="detail-hero">🍽️</div>
   <button class="detail-back" onclick="closeDetail()">←</button>
+  <button class="detail-edit" onclick="openEdit()" title="Edit">✏️</button>
   <button class="detail-delete" onclick="deleteCurrentRecipe()" title="Delete">🗑</button>
   <div class="detail-content">
     <div class="detail-name" id="detail-name"></div>
@@ -773,9 +829,16 @@ function categoryEmoji(cat) {
 //  ADD RECIPE
 // ════════════════════════════════════════
 function openAdd() {
+  editMode = false;
+  editId   = null;
+  document.getElementById('add-panel-title').textContent = 'Add Recipe';
+  document.getElementById('save-recipe-btn').textContent = 'Save Recipe';
+  clearPhoto();
   document.getElementById('add-panel').classList.add('open');
 }
 function closeAdd() {
+  editMode = false;
+  editId   = null;
   document.getElementById('add-panel').classList.remove('open');
 }
 function saveRecipe() {
@@ -805,12 +868,25 @@ function saveRecipe() {
     addedAt:     new Date().toLocaleDateString('en-AU', { day:'numeric', month:'short', year:'numeric' })
   };
 
-  recipes.unshift(recipe);
+  if (editMode && editId) {
+    const idx = recipes.findIndex(r => r.id === editId);
+    if (idx !== -1) {
+      recipe.id      = editId;
+      recipe.addedAt = recipes[idx].addedAt;
+      recipe.image   = recipes[idx].image || null;
+      recipes[idx]   = recipe;
+    }
+    toast('Recipe updated!', 'success');
+  } else {
+    recipes.unshift(recipe);
+    toast('Recipe saved!', 'success');
+  }
   saveRecipes();
   renderGrid();
+  // Refresh detail view if open
+  if (currentId) openDetail(currentId);
   closeAdd();
   clearAddForm();
-  toast('Recipe saved!', 'success');
 }
 
 function clearAddForm() {
@@ -819,6 +895,7 @@ function clearAddForm() {
   });
   document.getElementById('add-servings').value = '4';
   document.getElementById('add-category').value = 'Dinner';
+  clearPhoto();
 }
 
 // ════════════════════════════════════════
@@ -1292,6 +1369,158 @@ function updateListBadge() {
     document.getElementById('shop-btn').style.color = '';
   }
 }
+
+
+
+// ════════════════════════════════════════
+//  PHOTO IMPORT (Claude vision via API)
+// ════════════════════════════════════════
+let photoBase64 = null;
+
+function handlePhotoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxW = 1600;
+      const scale = img.width > maxW ? maxW / img.width : 1;
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      photoBase64 = dataUrl.split(',')[1];
+
+      // Show preview
+      const zone = document.getElementById('photo-zone');
+      zone.classList.add('has-image');
+      zone.innerHTML = `<img src="${dataUrl}" alt="Recipe photo">
+        <button class="photo-overlay-clear" onclick="clearPhoto(event)">✕</button>`;
+
+      extractRecipeFromPhoto();
+    };
+    img.onerror = () => toast('Could not load image', 'error');
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearPhoto(event) {
+  if (event) event.stopPropagation();
+  photoBase64 = null;
+  document.getElementById('photo-file').value = '';
+  const zone = document.getElementById('photo-zone');
+  zone.classList.remove('has-image');
+  zone.innerHTML = `<input type="file" id="photo-file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%" onchange="handlePhotoUpload(event)" onclick="event.stopPropagation()" />
+    <div class="photo-zone-icon">📷</div>
+    <div class="photo-zone-title">Import from photo</div>
+    <div class="photo-zone-sub">Take a photo or screenshot of a recipe<br>AI fills in the fields automatically</div>`;
+}
+
+function setOcrMsg(msg, show=true) {
+  const el = document.getElementById('ocr-msg');
+  el.textContent = msg;
+  el.style.display = show ? 'block' : 'none';
+}
+
+async function extractRecipeFromPhoto() {
+  if (!photoBase64) return;
+  const progress = document.getElementById('ocr-progress');
+  const fill     = document.getElementById('ocr-fill');
+  progress.style.display = 'block';
+  fill.style.width = '20%';
+  setOcrMsg('Reading recipe from photo…');
+
+  const prompt = `This is a photo of a recipe from a cookbook or screenshot. Extract the complete recipe and return ONLY valid JSON, no markdown:
+{
+  "name": "Recipe name",
+  "source": "Book or website name if visible",
+  "servings": 4,
+  "category": "Dinner",
+  "tags": ["tag1"],
+  "ingredients": ["200g chicken breast", "2 cloves garlic"],
+  "method": ["Preheat oven to 200C.", "Season the chicken."]
+}
+
+category must be one of: Dinner, Lunch, Breakfast, Dessert, Snack, Side, Baking, Other
+ingredients: each as a single string "qty unit name"
+method: each step as a single string
+If anything is unclear, make a reasonable guess. Return only the JSON object.`;
+
+  try {
+    fill.style.width = '50%';
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: photoBase64 } },
+            { type: 'text',  text: prompt }
+          ]
+        }]
+      })
+    });
+    fill.style.width = '80%';
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const raw   = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const match = raw.replace(/```json|```/g, '').trim().match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No recipe data found');
+    const r = JSON.parse(match[0]);
+
+    // Fill form fields
+    if (r.name)     document.getElementById('add-name').value     = r.name;
+    if (r.source)   document.getElementById('add-source').value   = r.source;
+    if (r.servings) document.getElementById('add-servings').value = r.servings;
+    if (r.category) document.getElementById('add-category').value = r.category;
+    if (r.tags)     document.getElementById('add-tags').value     = (r.tags || []).join(', ');
+    if (r.ingredients) document.getElementById('add-ingredients').value = (r.ingredients || []).join('\n');
+    if (r.method)      document.getElementById('add-method').value      = (r.method || []).join('\n');
+
+    fill.style.width = '100%';
+    setOcrMsg('✓ Recipe extracted — review and edit below before saving.');
+    toast('Recipe extracted from photo!', 'success');
+  } catch(err) {
+    console.error(err);
+    setOcrMsg('Could not read recipe: ' + err.message + ' — fill in manually below.');
+    toast('Photo extraction failed', 'error');
+  } finally {
+    setTimeout(() => { progress.style.display = 'none'; fill.style.width = '0%'; }, 1500);
+  }
+}
+
+// ════════════════════════════════════════
+//  EDIT RECIPE
+// ════════════════════════════════════════
+let editMode = false;
+let editId   = null;
+
+function openEdit() {
+  const r = recipes.find(r => r.id === currentId);
+  if (!r) return;
+  editMode = true;
+  editId   = r.id;
+
+  document.getElementById('add-panel-title').textContent = 'Edit Recipe';
+  document.getElementById('save-recipe-btn').textContent = 'Save Changes';
+
+  document.getElementById('add-name').value        = r.name || '';
+  document.getElementById('add-source').value      = r.source || '';
+  document.getElementById('add-servings').value    = r.servings || 4;
+  document.getElementById('add-category').value   = r.category || 'Dinner';
+  document.getElementById('add-tags').value        = (r.tags || []).join(', ');
+  document.getElementById('add-ingredients').value = (r.ingredients || []).map(i => (i.qty ? i.qty + ' ' : '') + i.name).join('\n');
+  document.getElementById('add-method').value      = (r.method || []).join('\n');
+
+  document.getElementById('add-panel').classList.add('open');
+}
+
 
 
 // Init badge
