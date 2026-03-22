@@ -606,6 +606,7 @@ body {
     <div class="header">
       <div class="header-title">My <em>Cookbook</em></div>
       <div class="header-actions">
+        <button class="icon-btn" onclick="closeDetail()" id="back-btn" title="Back to recipes" style="display:none">←</button>
         <button class="icon-btn" onclick="openShopList()" title="Shopping list" id="shop-btn">🛒</button>
         <button class="icon-btn" onclick="openSync()" title="Sync">☁️</button>
       </div>
@@ -638,13 +639,26 @@ body {
       <button class="close-btn" onclick="closeAdd()">✕</button>
     </div>
     <div class="panel-body">
-      <!-- Photo import -->
-      <div id="photo-zone" class="photo-import-zone" onclick="document.getElementById('photo-file').click()">
-        <input type="file" id="photo-file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%" onchange="handlePhotoUpload(event)" onclick="event.stopPropagation()" />
-        <div class="photo-zone-icon">📷</div>
-        <div class="photo-zone-title">Import from photo</div>
-        <div class="photo-zone-sub">Take a photo or screenshot of a recipe<br>Tesseract OCR reads it locally · free</div>
+      <!-- Photo import (multi-page) -->
+      <div class="field" style="margin-bottom:10px">
+        <label>Import from photos <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(select one or more pages)</span></label>
+        <label for="photo-file" class="photo-import-zone" id="photo-zone" style="cursor:pointer;display:block">
+          <div class="photo-zone-icon">📷</div>
+          <div class="photo-zone-title">Choose photos</div>
+          <div class="photo-zone-sub">Select multiple pages at once · Tesseract reads each one</div>
+        </label>
+        <input type="file" id="photo-file" accept="image/*" multiple
+          style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"
+          onchange="handlePhotoUpload(event)" />
       </div>
+
+      <!-- Per-image preview strip -->
+      <div id="photo-previews" style="display:none;margin-bottom:10px">
+        <div id="photo-strip" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>
+        <button type="button" class="btn btn-secondary" style="font-size:12px;padding:6px 12px" onclick="clearAllPhotos()">✕ Clear all photos</button>
+      </div>
+
+      <!-- Overall OCR progress -->
       <div class="ocr-progress" id="ocr-progress"><div class="ocr-progress-fill" id="ocr-fill"></div></div>
       <p id="ocr-msg" style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:10px;display:none"></p>
       <div style="height:1px;background:var(--border);margin-bottom:14px"></div>
@@ -663,6 +677,29 @@ body {
       </div>
       <p id="url-scrape-msg" style="font-size:12px;color:var(--muted);margin-bottom:10px;min-height:16px"></p>
       <div style="height:1px;background:var(--border);margin-bottom:14px"></div>
+
+      <!-- Recipe cover photo -->
+      <div class="field">
+        <label>Recipe Photo</label>
+        <div id="recipe-photo-wrap" style="display:flex;gap:10px;align-items:center">
+          <div id="recipe-photo-preview"
+            style="width:72px;height:72px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;overflow:hidden;cursor:pointer"
+            onclick="document.getElementById('recipe-photo-input').click()" title="Tap to add photo">
+            📷
+          </div>
+          <div style="flex:1">
+            <button type="button" class="btn btn-secondary" style="width:100%;margin-bottom:6px" onclick="document.getElementById('recipe-photo-input').click()">
+              Choose photo
+            </button>
+            <button type="button" id="recipe-photo-clear" class="btn btn-secondary" style="width:100%;font-size:12px;display:none" onclick="clearRecipePhoto()">
+              Remove photo
+            </button>
+          </div>
+          <input type="file" id="recipe-photo-input" accept="image/*"
+            style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"
+            onchange="handleRecipePhoto(event)" />
+        </div>
+      </div>
 
       <div class="field">
         <label>Recipe Name</label>
@@ -864,6 +901,17 @@ function openAdd() {
   document.getElementById('add-panel-title').textContent = 'Add Recipe';
   document.getElementById('save-recipe-btn').textContent = 'Save Recipe';
   clearPhoto();
+  // Load existing photo into picker
+  pendingRecipePhoto = r.image || null;
+  const preview = document.getElementById('recipe-photo-preview');
+  const clearBtn = document.getElementById('recipe-photo-clear');
+  if (r.image) {
+    preview.innerHTML = '<img src="' + r.image + '" style="width:100%;height:100%;object-fit:cover">';
+    clearBtn.style.display = 'block';
+  } else {
+    preview.innerHTML = '📷';
+    clearBtn.style.display = 'none';
+  }
   document.getElementById('add-panel').classList.add('open');
 }
 function closeAdd() {
@@ -894,7 +942,7 @@ function saveRecipe() {
     ingredients,
     method:      methodLines,
     tags,
-    image:       null,
+    image:       pendingRecipePhoto || null,
     addedAt:     new Date().toLocaleDateString('en-AU', { day:'numeric', month:'short', year:'numeric' })
   };
 
@@ -903,7 +951,8 @@ function saveRecipe() {
     if (idx !== -1) {
       recipe.id      = editId;
       recipe.addedAt = recipes[idx].addedAt;
-      recipe.image   = recipes[idx].image || null;
+      // Keep existing image if no new one was chosen
+      if (!pendingRecipePhoto) recipe.image = recipes[idx].image || null;
       recipes[idx]   = recipe;
     }
     toast('Recipe updated!', 'success');
@@ -928,6 +977,7 @@ function clearAddForm() {
   setUrlMsg('');
   document.getElementById('add-category').value = 'Dinner';
   clearPhoto();
+  clearRecipePhoto();
 }
 
 // ════════════════════════════════════════
@@ -994,10 +1044,12 @@ function openDetail(id) {
 
   document.getElementById('detail-view').classList.add('open');
   document.getElementById('detail-view').scrollTop = 0;
+  document.getElementById('back-btn').style.display = 'flex';
 }
 
 function closeDetail() {
   document.getElementById('detail-view').classList.remove('open');
+  document.getElementById('back-btn').style.display = 'none';
   currentId = null;
 }
 
@@ -1405,50 +1457,143 @@ function updateListBadge() {
 
 
 // ════════════════════════════════════════
-//  PHOTO IMPORT (Claude vision via API)
+//  RECIPE COVER PHOTO (base64, resized)
 // ════════════════════════════════════════
-let photoBase64 = null;
+let pendingRecipePhoto = null;
 
-function handlePhotoUpload(event) {
+function handleRecipePhoto(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const maxW = 1600;
+      // Resize to max 600px wide — keeps file small for JSON storage
+      const maxW  = 600;
       const scale = img.width > maxW ? maxW / img.width : 1;
+      const canvas = document.createElement('canvas');
       canvas.width  = Math.round(img.width  * scale);
       canvas.height = Math.round(img.height * scale);
       canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-      photoBase64 = dataUrl.split(',')[1];
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      pendingRecipePhoto = dataUrl;
 
       // Show preview
-      const zone = document.getElementById('photo-zone');
-      zone.classList.add('has-image');
-      zone.innerHTML = `<img src="${dataUrl}" alt="Recipe photo">
-        <button class="photo-overlay-clear" onclick="clearPhoto(event)">✕</button>`;
-
-      extractRecipeFromPhoto();
+      const preview = document.getElementById('recipe-photo-preview');
+      preview.innerHTML = '<img src="' + dataUrl + '" style="width:100%;height:100%;object-fit:cover">';
+      document.getElementById('recipe-photo-clear').style.display = 'block';
     };
-    img.onerror = () => toast('Could not load image', 'error');
+    img.onerror = () => toast('Could not load photo', 'error');
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
 
-function clearPhoto(event) {
-  if (event) event.stopPropagation();
-  photoBase64 = null;
-  document.getElementById('photo-file').value = '';
+function clearRecipePhoto() {
+  pendingRecipePhoto = null;
+  document.getElementById('recipe-photo-input').value = '';
+  document.getElementById('recipe-photo-preview').innerHTML = '📷';
+  document.getElementById('recipe-photo-clear').style.display = 'none';
+}
+
+// ════════════════════════════════════════
+//  PHOTO IMPORT — multi-page Tesseract OCR
+// ════════════════════════════════════════
+let importPhotos    = [];  // array of { dataUrl, name }
+let ocrWorkerInst  = null;
+
+async function getOCRWorker() {
+  if (!ocrWorkerInst) {
+    ocrWorkerInst = await Tesseract.createWorker('eng', 1, {
+      logger: m => {
+        if (m.status === 'loading tesseract core')        setFill(Math.round((m.progress||0)*20));
+        else if (m.status === 'initializing tesseract')   setFill(Math.round(20+(m.progress||0)*20));
+        else if (m.status === 'loading language traineddata') setFill(Math.round(40+(m.progress||0)*30));
+        else if (m.status === 'initializing api')         setFill(70);
+      }
+    });
+  }
+  return ocrWorkerInst;
+}
+
+function setFill(pct) {
+  const el = document.getElementById('ocr-fill');
+  if (el) el.style.width = pct + '%';
+}
+
+function handlePhotoUpload(event) {
+  const files = Array.from(event.target.files);
+  if (!files.length) return;
+
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxW   = 1600;
+        const scale  = img.width > maxW ? maxW / img.width : 1;
+        canvas.width  = Math.round(img.width  * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        importPhotos.push({ dataUrl, name: file.name });
+        renderPhotoStrip();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Reset input so same files can be re-added if needed
+  event.target.value = '';
+}
+
+function renderPhotoStrip() {
+  const strip    = document.getElementById('photo-strip');
+  const previews = document.getElementById('photo-previews');
+  previews.style.display = importPhotos.length ? 'block' : 'none';
+
+  strip.innerHTML = importPhotos.map((p, i) => `
+    <div style="position:relative;width:72px;height:72px;flex-shrink:0">
+      <img src="${p.dataUrl}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:block">
+      <div style="position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,0.65);color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px">p.${i+1}</div>
+      <button onclick="removePhoto(${i})"
+        style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
+    </div>`).join('');
+
+  // Show run button if we have photos
   const zone = document.getElementById('photo-zone');
-  zone.classList.remove('has-image');
-  zone.innerHTML = `<input type="file" id="photo-file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%" onchange="handlePhotoUpload(event)" onclick="event.stopPropagation()" />
-    <div class="photo-zone-icon">📷</div>
-    <div class="photo-zone-title">Import from photo</div>
-    <div class="photo-zone-sub">Take a photo or screenshot of a recipe<br>Tesseract OCR reads it locally · free</div>`;
+  if (importPhotos.length) {
+    zone.querySelector('.photo-zone-title').textContent = 'Add more pages';
+    zone.querySelector('.photo-zone-sub').textContent   = importPhotos.length + ' page' + (importPhotos.length > 1 ? 's' : '') + ' loaded · tap to add more';
+  } else {
+    zone.querySelector('.photo-zone-title').textContent = 'Choose photos';
+    zone.querySelector('.photo-zone-sub').textContent   = 'Select multiple pages at once · Tesseract reads each one';
+  }
+
+  // Auto-run OCR once all files have loaded (debounce 400ms)
+  clearTimeout(renderPhotoStrip._timer);
+  renderPhotoStrip._timer = setTimeout(() => {
+    if (importPhotos.length) runMultiPageOCR();
+  }, 400);
+}
+
+function removePhoto(idx) {
+  importPhotos.splice(idx, 1);
+  renderPhotoStrip();
+}
+
+function clearAllPhotos() {
+  importPhotos = [];
+  document.getElementById('photo-file').value = '';
+  renderPhotoStrip();
+  setOcrMsg('', false);
+  document.getElementById('ocr-progress').style.display = 'none';
+}
+
+function clearPhoto() {
+  clearAllPhotos();
 }
 
 function setOcrMsg(msg, show=true) {
@@ -1457,128 +1602,54 @@ function setOcrMsg(msg, show=true) {
   el.style.display = show ? 'block' : 'none';
 }
 
-let tWorker = null;
-
-async function getTWorker() {
-  if (!tWorker) {
-    tWorker = await Tesseract.createWorker('eng', 1, {
-      logger: m => {
-        const prog = document.getElementById('ocr-fill');
-        if (!prog) return;
-        if (m.status === 'loading tesseract core')       prog.style.width = Math.round((m.progress||0)*25) + '%';
-        else if (m.status === 'initializing tesseract')  prog.style.width = Math.round(25+(m.progress||0)*25) + '%';
-        else if (m.status === 'loading language traineddata') prog.style.width = Math.round(50+(m.progress||0)*30) + '%';
-        else if (m.status === 'recognizing text')        prog.style.width = Math.round(80+(m.progress||0)*18) + '%';
-      }
-    });
-  }
-  return tWorker;
-}
-
-async function extractRecipeFromPhoto() {
-  if (!photoBase64) return;
+async function runMultiPageOCR() {
+  if (!importPhotos.length) return;
   const progress = document.getElementById('ocr-progress');
-  const fill     = document.getElementById('ocr-fill');
   progress.style.display = 'block';
-  fill.style.width = '5%';
+  setFill(5);
   setOcrMsg('Loading OCR engine…');
 
   try {
-    // Create worker with progress tracking
-    const worker = await Tesseract.createWorker('eng', 1, {
-      logger: m => {
-        const stages = {
-          'loading tesseract core':      10,
-          'initializing tesseract':      25,
-          'loading language traineddata':50,
-          'initializing api':            70,
-          'recognizing text':            Math.round(70 + (m.progress || 0) * 28)
-        };
-        const pct = stages[m.status];
-        if (pct !== undefined) {
-          fill.style.width = pct + '%';
-          const labels = {
-            'loading tesseract core':      'Loading OCR engine…',
-            'initializing tesseract':      'Initialising…',
-            'loading language traineddata':'Downloading language model…',
-            'initializing api':            'Preparing…',
-            'recognizing text':            'Reading text… ' + Math.round((m.progress||0)*100) + '%'
-          };
-          setOcrMsg(labels[m.status] || m.status);
-        }
-      }
-    });
+    const worker = await getOCRWorker();
+    const allText = [];
 
-    setOcrMsg('Reading recipe text…');
-    const imageDataUrl = 'data:image/jpeg;base64,' + photoBase64;
-    const { data: { text } } = await worker.recognize(imageDataUrl);
-    await worker.terminate();
+    for (let i = 0; i < importPhotos.length; i++) {
+      const pageNum = i + 1;
+      const total   = importPhotos.length;
+      const baseProgress = Math.round((i / total) * 100);
 
-    fill.style.width = '100%';
-    setOcrMsg('Parsing ingredients and method…');
+      setOcrMsg('Reading page ' + pageNum + ' of ' + total + '…');
+      // Update fill proportionally across pages (80-100% reserved for recognition)
+      setFill(Math.max(75, baseProgress));
 
-    // Parse the raw OCR text into recipe fields
-    parseOCRText(text.trim());
+      const { data: { text } } = await worker.recognize(importPhotos[i].dataUrl);
+      allText.push(text.trim());
+      setFill(Math.round(((i + 1) / total) * 100));
+    }
 
-    setOcrMsg('✓ Done — review and edit the fields below, then save.');
-    toast('Recipe extracted!', 'success');
+    setFill(100);
+    setOcrMsg('Parsing recipe from ' + importPhotos.length + ' page' + (importPhotos.length > 1 ? 's' : '') + '…');
+
+    // Combine all pages with a separator so parser knows page boundaries
+    const combined = allText.join('\n\n--- page break ---\n\n');
+    parseOCRText(combined);
+
+    setOcrMsg('✓ Done — review and edit below, then save.');
+    toast('Recipe extracted from ' + importPhotos.length + ' page' + (importPhotos.length > 1 ? 's' : '') + '!', 'success');
   } catch(err) {
     console.error(err);
     setOcrMsg('OCR error: ' + err.message + ' — fill in manually below.');
-    toast('Could not read image', 'error');
+    toast('OCR failed', 'error');
   } finally {
-    setTimeout(() => { progress.style.display = 'none'; fill.style.width = '0%'; }, 2000);
+    setTimeout(() => {
+      progress.style.display = 'none';
+      setFill(0);
+    }, 2000);
   }
 }
 
-function parseOCRText(text) {
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 1);
-  if (!lines.length) return;
-
-  // First non-trivial line is likely the recipe name
-  const nameLine = lines.find(l => l.length > 3 && !/^(ingredient|method|step|instruction|serve|makes)/i.test(l));
-  if (nameLine) document.getElementById('add-name').value = nameLine;
-
-  // Split into ingredients vs method sections
-  let inIngredients = false;
-  let inMethod      = false;
-  const ingredients = [];
-  const method      = [];
-
-  for (const line of lines) {
-    const lower = line.toLowerCase();
-
-    // Section headers
-    if (/^(ingredients?|you.?ll need|what you need)/i.test(lower)) { inIngredients = true; inMethod = false; continue; }
-    if (/^(method|instructions?|steps?|directions?|how to|preparation)/i.test(lower)) { inIngredients = false; inMethod = true; continue; }
-
-    // Skip the name line already used
-    if (line === nameLine && ingredients.length === 0 && method.length === 0) continue;
-
-    // Classify lines
-    const isIngredient = inIngredients ||
-      /^\d|^[¼½¾]|^\d+\s*(g|kg|ml|l|tsp|tbsp|cup|oz|lb|bunch|clove|slice|piece)/i.test(line) ||
-      /\d+\s*(g|kg|ml|l|tsp|tbsp|cup|oz|lb)/i.test(line);
-
-    const isStep = inMethod ||
-      /^(step\s*)?\d+[.)]/i.test(line) ||
-      /^(preheat|heat|mix|add|stir|cook|bake|roast|season|combine|place|pour|bring|remove|slice|chop|dice|drain|rinse|let|allow|serve|transfer)/i.test(line);
-
-    const clean = line.replace(/^[•\-\*○▪]+\s*/, '').trim();
-
-    if (isStep && !isIngredient) {
-      method.push(clean.replace(/^(step\s*)?\d+[.)]\s*/i, ''));
-    } else if (isIngredient || (!isStep && ingredients.length > 0 && method.length === 0)) {
-      ingredients.push(clean);
-    } else if (method.length > 0) {
-      method.push(clean);
-    }
-  }
-
-  if (ingredients.length) document.getElementById('add-ingredients').value = ingredients.join('\n');
-  if (method.length)      document.getElementById('add-method').value      = method.join('\n');
-}
-
+// Keep old single-image entry point as alias
+async function extractRecipeFromPhoto() { await runMultiPageOCR(); }
 
 // ════════════════════════════════════════
 //  WEBSITE RECIPE SCRAPER (JSON-LD + fallback)
@@ -1807,6 +1878,17 @@ function openEdit() {
   document.getElementById('add-ingredients').value = (r.ingredients || []).map(i => (i.qty ? i.qty + ' ' : '') + i.name).join('\n');
   document.getElementById('add-method').value      = (r.method || []).join('\n');
 
+  // Load existing photo into picker
+  pendingRecipePhoto = r.image || null;
+  const preview = document.getElementById('recipe-photo-preview');
+  const clearBtn = document.getElementById('recipe-photo-clear');
+  if (r.image) {
+    preview.innerHTML = '<img src="' + r.image + '" style="width:100%;height:100%;object-fit:cover">';
+    clearBtn.style.display = 'block';
+  } else {
+    preview.innerHTML = '📷';
+    clearBtn.style.display = 'none';
+  }
   document.getElementById('add-panel').classList.add('open');
 }
 
