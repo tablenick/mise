@@ -980,6 +980,57 @@ function saveRecipe() {
   if (currentId) openDetail(currentId);
   closeAdd();
   clearAddForm();
+  // Auto-push to GitHub if configured
+  if (ghConfig) autoPush();
+}
+
+async function mergeWithRemote(localRecipes) {
+  // Fetch whatever is on GitHub right now
+  try {
+    const data     = await ghRequest('/repos/' + ghConfig.user + '/' + ghConfig.repo + '/contents/recipes.json');
+    const decoded  = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+    const remote   = JSON.parse(decoded);
+    if (!Array.isArray(remote)) return localRecipes;
+
+    // Build a map of local recipes by id
+    const localMap = {};
+    localRecipes.forEach(r => { localMap[r.id] = r; });
+
+    // Add any remote recipes that don't exist locally (added on another device)
+    remote.forEach(r => {
+      if (!localMap[r.id]) localMap[r.id] = r;
+    });
+
+    // Return merged list — local edits take priority, remote-only recipes are appended
+    return Object.values(localMap);
+  } catch(err) {
+    // If no remote file yet or fetch fails, just use local
+    console.warn('Merge fetch failed, using local:', err.message);
+    return localRecipes;
+  }
+}
+
+async function autoPush() {
+  try {
+    const filename = 'recipes.json';
+    // Merge with remote before pushing to avoid overwriting other devices' changes
+    const merged   = await mergeWithRemote(recipes);
+    // Update local if merge added new recipes from remote
+    if (merged.length !== recipes.length) {
+      recipes = merged;
+      saveRecipes();
+      renderGrid();
+    }
+    const sha      = await getFileSHA(filename);
+    const encoded  = btoa(unescape(encodeURIComponent(JSON.stringify(merged, null, 2))));
+    const body     = { message: 'Update recipes · ' + new Date().toLocaleString('en-AU'), content: encoded };
+    if (sha) body.sha = sha;
+    await ghRequest('/repos/' + ghConfig.user + '/' + ghConfig.repo + '/contents/' + filename, 'PUT', body);
+    toast('Saved & synced to GitHub ✓', 'success');
+  } catch(err) {
+    console.warn('Auto-push failed:', err.message);
+    toast('Saved locally — sync failed, push manually', 'error');
+  }
 }
 
 function clearAddForm() {
@@ -1205,12 +1256,20 @@ async function pushRecipes() {
   btn.innerHTML = '<span class="spinner"></span>';
   try {
     const filename = 'recipes.json';
+    // Merge with remote first to protect against overwriting other devices
+    const merged   = await mergeWithRemote(recipes);
+    if (merged.length !== recipes.length) {
+      recipes = merged;
+      saveRecipes();
+      renderGrid();
+      toast('Merged ' + (merged.length - recipes.length + merged.length - merged.length) + ' remote recipes before pushing…');
+    }
     const sha      = await getFileSHA(filename);
-    const content  = btoa(unescape(encodeURIComponent(JSON.stringify(recipes, null, 2))));
-    const body     = { message: 'Update recipes · ' + new Date().toLocaleString('en-AU'), content };
+    const encoded  = btoa(unescape(encodeURIComponent(JSON.stringify(merged, null, 2))));
+    const body     = { message: 'Update recipes · ' + new Date().toLocaleString('en-AU'), content: encoded };
     if (sha) body.sha = sha;
     await ghRequest('/repos/' + ghConfig.user + '/' + ghConfig.repo + '/contents/' + filename, 'PUT', body);
-    toast('Pushed ' + recipes.length + ' recipes ✓', 'success');
+    toast('Pushed ' + merged.length + ' recipes ✓', 'success');
   } catch(err) {
     toast('Push failed: ' + err.message, 'error');
   } finally {
