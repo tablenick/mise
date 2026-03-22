@@ -1229,6 +1229,8 @@ async function autoPush() {
     const body     = { message: 'Update recipes · ' + new Date().toLocaleString('en-AU'), content: encoded };
     if (sha) body.sha = sha;
     await ghRequest('/repos/' + ghConfig.user + '/' + ghConfig.repo + '/contents/' + filename, 'PUT', body);
+    // Also push pantry silently
+    try { await ghPutFile('pantry.json', pantryItems); } catch(e) { /* non-critical */ }
     toast('Saved & synced to GitHub ✓', 'success');
   } catch(err) {
     console.warn('Auto-push failed:', err.message);
@@ -1486,7 +1488,8 @@ function addPantryToList(id, btnEl) {
 
 const CAT_EMOJI = {
   Produce: '🥦', Pantry: '🫙', Dairy: '🥛',
-  Meat: '🥩', Frozen: '🧊', Bakery: '🍞', Other: '📦'
+  Meat: '🥩', Frozen: '🧊', Bakery: '🍞', Other: '📦',
+  'Weekend Juice': '🍊', Smoothie: '🥤'
 };
 
 function renderPantry() {
@@ -1596,25 +1599,31 @@ async function getFileSHA(filename) {
   } catch { return null; }
 }
 
+async function ghPutFile(filename, data) {
+  const sha     = await getFileSHA(filename);
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+  const body    = { message: filename + ' · ' + new Date().toLocaleString('en-AU'), content: encoded };
+  if (sha) body.sha = sha;
+  await ghRequest('/repos/' + ghConfig.user + '/' + ghConfig.repo + '/contents/' + filename, 'PUT', body);
+}
+
+async function ghGetFile(filename) {
+  const d       = await ghRequest('/repos/' + ghConfig.user + '/' + ghConfig.repo + '/contents/' + filename);
+  const decoded = decodeURIComponent(escape(atob(d.content.replace(/\n/g, ''))));
+  return JSON.parse(decoded);
+}
+
 async function pushRecipes() {
   const btn = document.getElementById('push-label');
   btn.innerHTML = '<span class="spinner"></span>';
   try {
-    const filename = 'recipes.json';
-    // Merge with remote first to protect against overwriting other devices
-    const merged   = await mergeWithRemote(recipes);
-    if (merged.length !== recipes.length) {
-      recipes = merged;
-      saveRecipes();
-      renderGrid();
-      toast('Merged ' + (merged.length - recipes.length + merged.length - merged.length) + ' remote recipes before pushing…');
-    }
-    const sha      = await getFileSHA(filename);
-    const encoded  = btoa(unescape(encodeURIComponent(JSON.stringify(merged, null, 2))));
-    const body     = { message: 'Update recipes · ' + new Date().toLocaleString('en-AU'), content: encoded };
-    if (sha) body.sha = sha;
-    await ghRequest('/repos/' + ghConfig.user + '/' + ghConfig.repo + '/contents/' + filename, 'PUT', body);
-    toast('Pushed ' + merged.length + ' recipes ✓', 'success');
+    // Recipes — merge first to protect other devices
+    const merged = await mergeWithRemote(recipes);
+    if (merged.length !== recipes.length) { recipes = merged; saveRecipes(); renderGrid(); }
+    await ghPutFile('recipes.json', merged);
+    // Pantry
+    await ghPutFile('pantry.json', pantryItems);
+    toast('Pushed ' + merged.length + ' recipes + pantry ✓', 'success');
   } catch(err) {
     toast('Push failed: ' + err.message, 'error');
   } finally {
@@ -1626,14 +1635,22 @@ async function pullRecipes() {
   const btn = document.getElementById('pull-label');
   btn.innerHTML = '<span class="spinner"></span>';
   try {
-    const d       = await ghRequest('/repos/' + ghConfig.user + '/' + ghConfig.repo + '/contents/recipes.json');
-    const decoded = decodeURIComponent(escape(atob(d.content.replace(/\n/g, ''))));
-    const pulled  = JSON.parse(decoded);
-    if (!Array.isArray(pulled)) throw new Error('Invalid format');
+    // Pull recipes
+    const pulled = await ghGetFile('recipes.json');
+    if (!Array.isArray(pulled)) throw new Error('Invalid recipes format');
     recipes = pulled;
     saveRecipes();
     renderGrid();
-    toast('Pulled ' + recipes.length + ' recipes ✓', 'success');
+    // Pull pantry (optional — may not exist yet)
+    try {
+      const pulledPantry = await ghGetFile('pantry.json');
+      if (Array.isArray(pulledPantry)) {
+        pantryItems = pulledPantry;
+        savePantry();
+        if (activeMainTab === 'pantry') renderPantryPage();
+      }
+    } catch(e) { /* pantry.json not created yet — ok */ }
+    toast('Pulled ' + recipes.length + ' recipes + pantry ✓', 'success');
   } catch(err) {
     toast('Pull failed: ' + err.message, 'error');
   } finally {
@@ -2623,6 +2640,17 @@ function addManualItem2() {
 }
 
 // ── Pantry page ──
+
+let activePantryFilter = 'all';
+
+function setPantryFilter(cat) {
+  activePantryFilter = cat;
+  document.querySelectorAll('[id^="pcat-"]').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('pcat-' + cat);
+  if (btn) btn.classList.add('active');
+  renderPantryPage();
+}
+
 function renderPantryPage() {
   const container = document.getElementById('pantry-list2');
   const countEl   = document.getElementById('pantry-count');
@@ -2631,9 +2659,19 @@ function renderPantryPage() {
     container.innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">No pantry items yet — add your staples above.</p>';
     return;
   }
+  // Filter items
+  const filtered = activePantryFilter === 'all'
+    ? pantryItems
+    : pantryItems.filter(p => p.cat === activePantryFilter);
+
+  if (!filtered.length) {
+    container.innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">No items in this category yet.</p>';
+    return;
+  }
+
   const groups = {};
-  pantryItems.forEach(p => { if (!groups[p.cat]) groups[p.cat] = []; groups[p.cat].push(p); });
-  const order = ['Produce','Dairy','Meat','Bakery','Pantry','Frozen','Other'];
+  filtered.forEach(p => { if (!groups[p.cat]) groups[p.cat] = []; groups[p.cat].push(p); });
+  const order = ['Weekend Juice','Smoothie','Produce','Dairy','Meat','Bakery','Pantry','Frozen','Other'];
   let html = '';
   order.forEach(cat => {
     if (!groups[cat]) return;
@@ -2904,6 +2942,17 @@ window.addEventListener('resize', fixHeaderOffset);
     <h2>Pantry</h2>
     <span style="font-size:12px;color:var(--muted)" id="pantry-count"></span>
   </div>
+  <!-- Quick filter tabs -->
+  <div style="display:flex;gap:6px;padding:10px 16px 0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch">
+    <button class="cat-tab active" id="pcat-all"           onclick="setPantryFilter('all')">All</button>
+    <button class="cat-tab"        id="pcat-Weekend Juice"  onclick="setPantryFilter('Weekend Juice')">🍊 Weekend Juice</button>
+    <button class="cat-tab"        id="pcat-Smoothie"       onclick="setPantryFilter('Smoothie')">🥤 Smoothie</button>
+    <button class="cat-tab"        id="pcat-Produce"        onclick="setPantryFilter('Produce')">🥦 Produce</button>
+    <button class="cat-tab"        id="pcat-Pantry"         onclick="setPantryFilter('Pantry')">🫙 Pantry</button>
+    <button class="cat-tab"        id="pcat-Dairy"          onclick="setPantryFilter('Dairy')">🥛 Dairy</button>
+    <button class="cat-tab"        id="pcat-Frozen"         onclick="setPantryFilter('Frozen')">🧊 Frozen</button>
+    <button class="cat-tab"        id="pcat-Other"          onclick="setPantryFilter('Other')">📦 Other</button>
+  </div>
   <div class="page-body">
     <p style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5">
       Your regular staples. Tap <strong style="color:var(--accent)">+</strong> to add to shopping list.
@@ -2928,6 +2977,8 @@ window.addEventListener('resize', fixHeaderOffset);
         <option value="Produce">🥦 Produce</option><option value="Pantry">🫙 Pantry</option>
         <option value="Dairy">🥛 Dairy</option><option value="Meat">🥩 Meat</option>
         <option value="Frozen">🧊 Frozen</option><option value="Bakery">🍞 Bakery</option>
+        <option value="Weekend Juice">🍊 Weekend Juice</option>
+        <option value="Smoothie">🥤 Smoothie</option>
         <option value="Other">📦 Other</option>
       </select>
       <button class="btn btn-primary" style="padding:9px 14px;font-size:20px;border-radius:10px" onclick="addPantryItem2()">+</button>
