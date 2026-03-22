@@ -1655,6 +1655,62 @@ async function runMultiPageOCR() {
 // Keep old single-image entry point as alias
 async function extractRecipeFromPhoto() { await runMultiPageOCR(); }
 
+function parseOCRText(text) {
+  // Strip page break markers
+  const clean = text.replace(/--- page break ---/g, '');
+  const lines = clean.split('\n').map(l => l.trim()).filter(l => l.length > 1);
+  if (!lines.length) return;
+
+  // First meaningful line is likely the recipe name
+  const nameLine = lines.find(l =>
+    l.length > 3 &&
+    !/^(ingredient|method|step|instruction|serve|makes|for the|preparation)/i.test(l)
+  );
+  if (nameLine) document.getElementById('add-name').value = nameLine;
+
+  let inIngredients = false;
+  let inMethod      = false;
+  const ingredients = [];
+  const method      = [];
+
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+
+    // Section headers
+    if (/^(ingredients?|you.?ll need|what you need)/i.test(lower)) {
+      inIngredients = true; inMethod = false; continue;
+    }
+    if (/^(method|instructions?|steps?|directions?|how to|preparation|to make)/i.test(lower)) {
+      inIngredients = false; inMethod = true; continue;
+    }
+
+    // Skip the name line
+    if (line === nameLine && ingredients.length === 0 && method.length === 0) continue;
+
+    const isIngredient = inIngredients ||
+      /^\d|^[¼½¾⅓⅔⅛⅜⅝⅞]/.test(line) ||
+      /^\d+\s*(g|kg|ml|l|tsp|tbsp|cup|cups|oz|lb|bunch|clove|cloves|slice|slices|piece|pieces)/i.test(line) ||
+      /\d+\s*(g|kg|ml|l|tsp|tbsp|cup|oz|lb)/i.test(line);
+
+    const isStep = inMethod ||
+      /^(step\s*)?\d+[.)]/i.test(line) ||
+      /^(preheat|heat|mix|add|stir|cook|bake|roast|season|combine|place|pour|bring|remove|slice|chop|dice|drain|rinse|let|allow|serve|transfer|whisk|fold|sauté|fry|boil|simmer|grill|blend|process)/i.test(line);
+
+    const stripped = line.replace(/^[•\-\*○▪◦]+\s*/, '').trim();
+
+    if (isStep && !isIngredient) {
+      method.push(stripped.replace(/^(step\s*)?\d+[.)]\s*/i, ''));
+    } else if (isIngredient || (!isStep && ingredients.length > 0 && method.length === 0)) {
+      ingredients.push(stripped);
+    } else if (method.length > 0) {
+      method.push(stripped);
+    }
+  }
+
+  if (ingredients.length) document.getElementById('add-ingredients').value = ingredients.join('\n');
+  if (method.length)      document.getElementById('add-method').value      = method.join('\n');
+}
+
 // ════════════════════════════════════════
 //  WEBSITE RECIPE SCRAPER (JSON-LD + fallback)
 // ════════════════════════════════════════
