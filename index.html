@@ -212,7 +212,7 @@ body {
   display: none;
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.65);
-  z-index: 100;
+  z-index: 300;
   align-items: flex-end;
 }
 .panel-overlay.open { display: flex; }
@@ -309,7 +309,7 @@ body {
   display: none;
   position: fixed; inset: 0;
   background: var(--bg);
-  z-index: 80;
+  z-index: 300;
   overflow-y: auto;
   max-width: 500px;
   margin: 0 auto;
@@ -449,7 +449,7 @@ body {
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
-  z-index: 200;
+  z-index: 400;
   opacity: 0;
   transition: opacity 0.2s;
   pointer-events: none;
@@ -908,17 +908,7 @@ function openAdd() {
   document.getElementById('add-panel-title').textContent = 'Add Recipe';
   document.getElementById('save-recipe-btn').textContent = 'Save Recipe';
   clearPhoto();
-  // Load existing photo into picker
-  pendingRecipePhoto = r.image || null;
-  const preview = document.getElementById('recipe-photo-preview');
-  const clearBtn = document.getElementById('recipe-photo-clear');
-  if (r.image) {
-    preview.innerHTML = '<img src="' + r.image + '" style="width:100%;height:100%;object-fit:cover">';
-    clearBtn.style.display = 'block';
-  } else {
-    preview.innerHTML = '📷';
-    clearBtn.style.display = 'none';
-  }
+  clearRecipePhoto();
   document.getElementById('add-panel').classList.add('open');
 }
 function closeAdd() {
