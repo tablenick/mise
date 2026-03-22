@@ -1959,7 +1959,10 @@ function openEdit() {
   document.getElementById('add-servings').value    = r.servings || 4;
   document.getElementById('add-category').value   = r.category || 'Dinner';
   document.getElementById('add-tags').value        = (r.tags || []).join(', ');
-  document.getElementById('add-ingredients').value = (r.ingredients || []).map(i => (i.qty ? i.qty + ' ' : '') + i.name).join('\n');
+    document.getElementById('add-ingredients').value = (r.ingredients || []).map(i => {
+    if (i.subheading) return '## ' + i.subheading;
+    return (i.qty ? i.qty + ' ' : '') + i.name;
+  }).join('\n');
   document.getElementById('add-method').value      = (r.method || []).join('\n');
 
   // Load existing photo into picker
