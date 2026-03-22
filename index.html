@@ -1412,6 +1412,7 @@ function addPantryToList(id) {
   });
   persist(SHOP_KEY, shopItems);
   updateListBadge();
+  renderShopPage();
   toast(p.name + ' added to list ✓', 'success');
 }
 
@@ -1762,22 +1763,32 @@ function toggleShopRecipe(id) {
     const r = recipes.find(r => r.id === id);
     shopSelections[id] = r ? (r.servings || 4) : 4;
   }
-  renderShopRecipes();
+  // Update whichever recipe list is currently visible
+  if (document.getElementById('srow-' + id)) renderShopRecipes();
+  if (document.getElementById('srow2-' + id)) renderShopRecipes2();
 }
 
 function changeShopSrv(id, delta) {
-  const current = shopSelections[id] !== undefined ? shopSelections[id] : (recipes.find(r => r.id === id)?.servings || 4);
+  const r = recipes.find(r => r.id === id);
+  const current = shopSelections[id] !== undefined ? shopSelections[id] : (r ? r.servings || 4 : 4);
   const next = Math.max(1, current + delta);
   shopSelections[id] = next;
-  const el = document.getElementById('ssrv-' + id);
-  if (el) el.textContent = next;
-  // Ensure row shows selected if we changed servings
-  const row = document.getElementById('srow-' + id);
-  if (row) {
-    row.classList.add('selected');
-    row.querySelector('.recipe-check').textContent = '✓';
-  }
+  // Update both possible DOM elements
+  const el1 = document.getElementById('ssrv-' + id);
+  const el2 = document.getElementById('ssrv2-' + id);
+  if (el1) el1.textContent = next;
+  if (el2) el2.textContent = next;
+  // Mark row as selected in whichever list is visible
+  ['srow-', 'srow2-'].forEach(prefix => {
+    const row = document.getElementById(prefix + id);
+    if (row) {
+      row.classList.add('selected');
+      const check = row.querySelector('.recipe-check');
+      if (check) check.textContent = '✓';
+    }
+  });
 }
+
 
 function generateList() {
   const selected = Object.keys(shopSelections);
@@ -1816,8 +1827,8 @@ function generateList() {
   shopItems = [...manualItems, ...Object.values(merged)];
   persist(SHOP_KEY, shopItems);
   updateListBadge();
-  switchShopTab('list');
-  toast('List generated!', 'success');
+  renderShopPage();
+  toast('List generated! Check the List tab.', 'success');
 }
 
 function renderShopItems() {
@@ -1877,7 +1888,8 @@ function toggleItem(id) {
   if (item) {
     item.checked = !item.checked;
     persist(SHOP_KEY, shopItems);
-    renderShopItems();
+    renderShopPage();
+    updateListBadge();
     if (liveSyncActive) pushListToGitHub();
   }
 }
@@ -1910,7 +1922,8 @@ function addManualItem() {
 function clearCheckedItems() {
   shopItems = shopItems.filter(i => !i.checked);
   persist(SHOP_KEY, shopItems);
-  renderShopItems();
+  renderShopPage();
+  updateListBadge();
   toast('Cleared done items');
 }
 
@@ -1919,8 +1932,9 @@ function clearAllItems() {
   shopItems = [];
   shopSelections = {};
   persist(SHOP_KEY, shopItems);
-  renderShopItems();
-  renderShopRecipes();
+  renderShopPage();
+  renderShopRecipes2();
+  updateListBadge();
   toast('List cleared');
 }
 
