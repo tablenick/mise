@@ -676,6 +676,62 @@ body {
   }
   .pantry-del-btn:active { background: var(--red); color: #fff; border-color: var(--red); }
 
+
+  /* ── Bottom nav bar ── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%; max-width: 500px;
+    display: flex;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    z-index: 250;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .nav-btn {
+    flex: 1; background: none; border: none;
+    padding: 10px 4px 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font-family: 'Nunito', sans-serif; font-size: 10px; font-weight: 700;
+    color: var(--muted); cursor: pointer;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    transition: color 0.15s;
+  }
+  .nav-btn .nav-icon { font-size: 22px; line-height: 1; }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn .nav-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: transparent; margin-top: 1px;
+  }
+  .nav-btn.active .nav-dot { background: var(--accent); }
+
+  /* ── Page views ── */
+  .page-view {
+    display: none;
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 240;
+    overflow-y: auto;
+    max-width: 500px;
+    margin: 0 auto;
+    padding-bottom: 80px;
+  }
+  .page-view.active { display: block; }
+  .page-header {
+    position: sticky; top: 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    z-index: 10;
+  }
+  .page-header h2 {
+    font-family: 'Lora', serif;
+    font-size: 20px; font-weight: 600;
+  }
+  .page-body { padding: 16px 20px; }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -714,8 +770,7 @@ body {
       <div class="header-title">My <em>Cookbook</em></div>
       <div class="header-actions">
         <button class="icon-btn" onclick="closeDetail()" id="back-btn" title="Back to recipes" style="display:none">←</button>
-        <button class="icon-btn" onclick="openShopList()" title="Shopping list" id="shop-btn">🛒</button>
-        <button class="icon-btn" onclick="openSync()" title="Sync">☁️</button>
+        
       </div>
     </div>
     </div>
@@ -746,6 +801,23 @@ body {
   <!-- Recipe grid -->
   <div class="recipe-grid" id="grid"></div>
 </div><!-- /app -->
+
+
+<!-- Bottom nav -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-recipes" onclick="switchMainTab('recipes')">
+    <span class="nav-icon">📖</span>Recipes<div class="nav-dot"></div>
+  </button>
+  <button class="nav-btn" id="nav-shop" onclick="switchMainTab('shop')">
+    <span class="nav-icon">🛒</span>List<div class="nav-dot" id="shop-nav-dot"></div>
+  </button>
+  <button class="nav-btn" id="nav-pantry" onclick="switchMainTab('pantry')">
+    <span class="nav-icon">🥫</span>Pantry<div class="nav-dot"></div>
+  </button>
+  <button class="nav-btn" id="nav-sync" onclick="switchMainTab('sync')">
+    <span class="nav-icon">☁️</span>Sync<div class="nav-dot" id="sync-nav-dot"></div>
+  </button>
+</nav>
 
 <!-- FAB -->
 <button class="fab" onclick="openAdd()" title="Add recipe">+</button>
@@ -2364,8 +2436,204 @@ function openEdit() {
 
 
 
+
+// ════════════════════════════════════════
+//  MAIN TAB NAVIGATION
+// ════════════════════════════════════════
+let activeMainTab = 'recipes';
+
+function switchMainTab(tab) {
+  activeMainTab = tab;
+  // Update nav buttons
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const navBtn = document.getElementById('nav-' + tab);
+  if (navBtn) navBtn.classList.add('active');
+
+  // Show/hide page views
+  document.querySelectorAll('.page-view').forEach(v => v.classList.remove('active'));
+  const page = document.getElementById('page-' + tab);
+  if (page) page.classList.add('active');
+
+  // Hide FAB on non-recipe tabs
+  if (tab === 'recipes') showFab(); else hideFab();
+
+  // Render content for the tab
+  if (tab === 'shop')   { renderShopPage(); renderShopRecipes2(); }
+  if (tab === 'pantry') renderPantryPage();
+  if (tab === 'sync')   initSyncPage();
+}
+
+// ── Shopping page ──
+function renderShopRecipes2() {
+  const container = document.getElementById('shop-recipe-list2');
+  if (!recipes.length) { container.innerHTML = '<p style="color:var(--muted);font-size:13px">No recipes yet.</p>'; return; }
+  container.innerHTML = recipes.map(r => {
+    const sel = shopSelections[r.id];
+    const srv = sel !== undefined ? sel : (r.servings || 4);
+    const isSelected = sel !== undefined;
+    return `<div class="shop-recipe-row ${isSelected ? 'selected' : ''}" id="srow2-${r.id}" onclick="toggleShopRecipe('${r.id}')">
+      <div class="recipe-check">${isSelected ? '✓' : ''}</div>
+      <div class="recipe-info">
+        <div class="recipe-rname">${r.name}</div>
+        <div class="recipe-rsub">${r.category || ''} · ${r.ingredients ? r.ingredients.filter(i=>!i.subheading).length : 0} ingredients</div>
+      </div>
+      <div class="shop-srv-ctrl" onclick="event.stopPropagation()">
+        <button onclick="changeShopSrv('${r.id}',-1)">−</button>
+        <span class="srv-val" id="ssrv2-${r.id}">${srv}</span>
+        <button onclick="changeShopSrv('${r.id}',1)">+</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderShopPage() {
+  const container = document.getElementById('shop-list-items2');
+  const progress  = document.getElementById('list-progress2');
+  if (!shopItems.length) {
+    container.innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">No items yet — select recipes above and tap Generate.</p>';
+    progress.style.display = 'none';
+    return;
+  }
+  progress.style.display = 'block';
+  const total = shopItems.length;
+  const done  = shopItems.filter(i => i.checked).length;
+  const pct   = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('progress-text2').textContent = done + ' of ' + total + ' done';
+  document.getElementById('progress-pct2').textContent  = pct + '%';
+  document.getElementById('progress-fill2').style.width = pct + '%';
+
+  const unchecked = shopItems.filter(i => !i.checked);
+  const checked   = shopItems.filter(i =>  i.checked);
+  let html = '';
+  unchecked.forEach(item => { html += renderListItem(item); });
+  if (checked.length) {
+    html += '<div class="list-section-head" style="opacity:0.5">Done (' + checked.length + ')</div>';
+    checked.forEach(item => { html += renderListItem(item); });
+  }
+  container.innerHTML = html;
+  updateListBadge();
+}
+
+function addManualItem2() {
+  const nameEl = document.getElementById('manual-item2');
+  const qtyEl  = document.getElementById('manual-qty2');
+  const unitEl = document.getElementById('manual-unit2');
+  const name   = nameEl.value.trim();
+  if (!name) return;
+  const qtyStr = qtyEl.value.trim() ? qtyEl.value.trim() + (unitEl.value || '') : '';
+  shopItems.push({
+    id: Date.now().toString() + Math.random().toString(36).slice(2),
+    name, qty: qtyStr, from: [], checked: false, manual: true
+  });
+  persist(SHOP_KEY, shopItems);
+  nameEl.value = ''; qtyEl.value = '';
+  renderShopPage();
+}
+
+// ── Pantry page ──
+function renderPantryPage() {
+  const container = document.getElementById('pantry-list2');
+  const countEl   = document.getElementById('pantry-count');
+  countEl.textContent = pantryItems.length + ' items';
+  if (!pantryItems.length) {
+    container.innerHTML = '<p style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0">No pantry items yet — add your staples above.</p>';
+    return;
+  }
+  const groups = {};
+  pantryItems.forEach(p => { if (!groups[p.cat]) groups[p.cat] = []; groups[p.cat].push(p); });
+  const order = ['Produce','Dairy','Meat','Bakery','Pantry','Frozen','Other'];
+  let html = '';
+  order.forEach(cat => {
+    if (!groups[cat]) return;
+    html += '<div class="pantry-group-head">' + (CAT_EMOJI[cat]||'📦') + ' ' + cat + '</div>';
+    groups[cat].forEach(p => {
+      html += `<div class="pantry-item">
+        <div class="pantry-item-info">
+          <div class="pantry-item-name">${p.name}</div>
+          ${p.qty ? `<div class="pantry-item-qty">${p.qty}</div>` : ''}
+        </div>
+        <button class="pantry-del-btn" onclick="deletePantryItem('${p.id}')" title="Remove">✕</button>
+        <button class="pantry-add-btn" onclick="addPantryToList('${p.id}');switchMainTab('shop')" title="Add to list">+</button>
+      </div>`;
+    });
+  });
+  container.innerHTML = html;
+}
+
+function addPantryItem2() {
+  const name = document.getElementById('pantry-name2').value.trim();
+  if (!name) return;
+  const qty  = document.getElementById('pantry-qty2').value.trim();
+  const unit = document.getElementById('pantry-unit2').value;
+  const cat  = document.getElementById('pantry-cat2').value;
+  pantryItems.push({ id: Date.now().toString()+Math.random().toString(36).slice(2), name, qty: qty+unit, cat });
+  savePantry();
+  document.getElementById('pantry-name2').value = '';
+  document.getElementById('pantry-qty2').value  = '';
+  renderPantryPage();
+}
+
+// ── Sync page ──
+function initSyncPage() {
+  if (!ghConfig) return;
+  document.getElementById('gh-user2').value  = ghConfig.user  || '';
+  document.getElementById('gh-repo2').value  = ghConfig.repo  || '';
+  document.getElementById('gh-token2').value = ghConfig.token || '';
+  document.getElementById('sync-actions2').style.display = 'block';
+  setSyncBadge2(true);
+}
+
+function setSyncBadge2(connected) {
+  const el = document.getElementById('sync-status-badge2');
+  if (!el) return;
+  el.textContent = connected ? 'Connected' : 'Not connected';
+  el.className   = 'sync-status ' + (connected ? 'connected' : 'disconnected');
+  const dot = document.getElementById('sync-nav-dot');
+  if (dot) dot.style.background = connected ? 'var(--green)' : 'transparent';
+}
+
+async function connectGitHub2() {
+  const user  = document.getElementById('gh-user2').value.trim();
+  const repo  = document.getElementById('gh-repo2').value.trim();
+  const token = document.getElementById('gh-token2').value.trim();
+  if (!user || !repo || !token) return setSyncMsg('Fill in all three fields', 'error');
+  document.getElementById('connect-label2').innerHTML = '<span class="spinner"></span>';
+  saveGH({ user, repo, token });
+  try {
+    await ghRequest('/repos/' + user + '/' + repo);
+    document.getElementById('sync-actions2').style.display = 'block';
+    setSyncBadge2(true);
+    setSyncMsg('✓ Connected to ' + user + '/' + repo, 'success');
+  } catch(err) {
+    saveGH(null);
+    setSyncBadge2(false);
+    document.getElementById('sync-actions2').style.display = 'none';
+    setSyncMsg('Failed: ' + err.message, 'error');
+  } finally {
+    document.getElementById('connect-label2').innerHTML = 'Connect';
+  }
+}
+
+function setSyncMsg(msg, type) {
+  const el = document.getElementById('sync-msg2');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = type === 'error' ? 'var(--red)' : type === 'success' ? 'var(--green)' : 'var(--muted)';
+}
+
+// Override updateListBadge to update nav dot
+const _origUpdateBadge = updateListBadge;
+function updateListBadge() {
+  _origUpdateBadge();
+  const remaining = shopItems.filter(i => !i.checked).length;
+  const dot = document.getElementById('shop-nav-dot');
+  if (dot) dot.style.background = remaining > 0 ? 'var(--accent)' : 'transparent';
+}
+
+
 // Init badge
 updateListBadge();
+if (ghConfig) { setSyncBadge2(true); }
 
 // Dynamically match app padding-top to fixed header height
 function fixHeaderOffset() {
@@ -2490,6 +2758,121 @@ window.addEventListener('resize', fixHeaderOffset);
         <div id="pantry-list"></div>
       </div>
 
+    </div>
+  </div>
+</div>
+
+<!-- ══ SHOPPING PAGE ══ -->
+<div class="page-view" id="page-shop">
+  <div class="page-header">
+    <h2>Shopping List</h2>
+    <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px" onclick="clearCheckedItems()">Clear done</button>
+  </div>
+  <div class="page-body">
+    <!-- Recipe selector -->
+    <div id="shop-recipe-select" style="margin-bottom:16px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Add from recipes</div>
+      <div id="shop-recipe-list2" style="max-height:220px;overflow-y:auto"></div>
+      <button class="btn btn-primary btn-full" onclick="generateList()" style="margin-top:8px">Generate List →</button>
+    </div>
+    <div style="height:1px;background:var(--border);margin-bottom:14px"></div>
+    <!-- Progress -->
+    <div class="list-progress" id="list-progress2" style="display:none">
+      <div class="list-progress-label">
+        <span id="progress-text2">0 of 0 done</span>
+        <span id="progress-pct2">0%</span>
+      </div>
+      <div class="list-progress-bar"><div class="list-progress-fill" id="progress-fill2" style="width:0%"></div></div>
+    </div>
+    <!-- Manual add -->
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+      <input id="manual-item2" placeholder="Item name…"
+        style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+        onkeydown="if(event.key==='Enter')addManualItem2()" />
+      <input id="manual-qty2" placeholder="Qty"
+        style="width:52px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 6px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none;text-align:center"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
+      <select id="manual-unit2"
+        style="width:66px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 4px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none;appearance:none;text-align:center">
+        <option value="">—</option><option value="g">g</option><option value="kg">kg</option>
+        <option value="ml">ml</option><option value="L">L</option><option value="tsp">tsp</option>
+        <option value="tbsp">tbsp</option><option value="cup">cup</option><option value="bag">bag</option>
+        <option value="can">can</option><option value="bunch">bunch</option><option value="pack">pack</option>
+      </select>
+      <button class="btn btn-primary" style="padding:9px 14px;font-size:20px;border-radius:10px" onclick="addManualItem2()">+</button>
+    </div>
+    <!-- List items -->
+    <div id="shop-list-items2"></div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-secondary" style="flex:1;font-size:13px" onclick="clearCheckedItems()">Clear done</button>
+      <button class="btn btn-secondary" style="flex:1;font-size:13px" onclick="clearAllItems()">Clear all</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PANTRY PAGE ══ -->
+<div class="page-view" id="page-pantry">
+  <div class="page-header">
+    <h2>Pantry</h2>
+    <span style="font-size:12px;color:var(--muted)" id="pantry-count"></span>
+  </div>
+  <div class="page-body">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5">
+      Your regular staples. Tap <strong style="color:var(--accent)">+</strong> to add to shopping list.
+    </p>
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+      <input id="pantry-name2" placeholder="Item name…"
+        style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+        onkeydown="if(event.key==='Enter')addPantryItem2()" />
+      <input id="pantry-qty2" placeholder="Qty"
+        style="width:52px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 6px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none;text-align:center"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
+      <select id="pantry-unit2"
+        style="width:66px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 4px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none;appearance:none;text-align:center">
+        <option value="">—</option><option value="g">g</option><option value="kg">kg</option>
+        <option value="ml">ml</option><option value="L">L</option><option value="tsp">tsp</option>
+        <option value="tbsp">tbsp</option><option value="cup">cup</option><option value="bag">bag</option>
+        <option value="can">can</option><option value="bunch">bunch</option><option value="pack">pack</option>
+      </select>
+      <select id="pantry-cat2"
+        style="width:92px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 4px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none;appearance:none">
+        <option value="Produce">🥦 Produce</option><option value="Pantry">🫙 Pantry</option>
+        <option value="Dairy">🥛 Dairy</option><option value="Meat">🥩 Meat</option>
+        <option value="Frozen">🧊 Frozen</option><option value="Bakery">🍞 Bakery</option>
+        <option value="Other">📦 Other</option>
+      </select>
+      <button class="btn btn-primary" style="padding:9px 14px;font-size:20px;border-radius:10px" onclick="addPantryItem2()">+</button>
+    </div>
+    <div id="pantry-list2"></div>
+  </div>
+</div>
+
+<!-- ══ SYNC PAGE ══ -->
+<div class="page-view" id="page-sync">
+  <div class="page-header"><h2>Sync</h2></div>
+  <div class="page-body">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <span style="font-size:13px;color:var(--muted)">GitHub status</span>
+      <span class="sync-status disconnected" id="sync-status-badge2">Not connected</span>
+    </div>
+    <div class="field"><label>GitHub Username</label><input id="gh-user2" placeholder="e.g. tablenick" /></div>
+    <div class="field"><label>Repository Name</label><input id="gh-repo2" placeholder="e.g. mise-recipes" /></div>
+    <div class="field">
+      <label>Personal Access Token</label>
+      <input id="gh-token2" type="password" placeholder="ghp_xxxxxxxxxxxx" />
+      <div style="font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5">Settings → Developer settings → Personal access tokens → repo scope</div>
+    </div>
+    <div id="sync-msg2" style="font-size:13px;min-height:18px;margin-bottom:10px"></div>
+    <button class="btn btn-primary btn-full" onclick="connectGitHub2()" style="margin-bottom:10px"><span id="connect-label2">Connect</span></button>
+    <div id="sync-actions2" style="display:none">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="btn btn-green" style="flex:1" onclick="pushRecipes()"><span id="push-label">↑ Push</span></button>
+        <button class="btn btn-secondary" style="flex:1" onclick="pullRecipes()"><span id="pull-label">↓ Pull</span></button>
+      </div>
+      <p style="font-size:12px;color:var(--muted);text-align:center;line-height:1.6;margin-bottom:12px">Push saves your recipes to GitHub.<br>Pull loads them on a new device.</p>
+      <button class="btn btn-secondary btn-full" onclick="disconnectGitHub()">Disconnect</button>
     </div>
   </div>
 </div>
