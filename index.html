@@ -189,7 +189,7 @@ body {
 .fab {
   position: fixed;
   bottom: 28px;
-  right: calc(50% - 230px);
+  right: 20px;
   width: 56px; height: 56px;
   border-radius: 50%;
   background: var(--accent);
@@ -199,9 +199,11 @@ body {
   cursor: pointer;
   box-shadow: 0 4px 20px rgba(224,123,63,0.45);
   display: flex; align-items: center; justify-content: center;
-  transition: transform 0.15s, background 0.15s;
-  z-index: 40;
+  transition: transform 0.15s, background 0.15s, opacity 0.2s;
+  z-index: 30;
 }
+.fab.hidden { opacity: 0; pointer-events: none; transform: scale(0.8); }
+@media (min-width: 500px) { .fab { right: calc(50% - 230px); } }
 .fab:active { transform: scale(0.92); }
 @media (max-width: 500px) { .fab { right: 20px; } }
 
@@ -895,7 +897,12 @@ function categoryEmoji(cat) {
 // ════════════════════════════════════════
 //  ADD RECIPE
 // ════════════════════════════════════════
+
+function hideFab() { document.querySelector('.fab').classList.add('hidden'); }
+function showFab() { document.querySelector('.fab').classList.remove('hidden'); }
+
 function openAdd() {
+  hideFab();
   editMode = false;
   editId   = null;
   document.getElementById('add-panel-title').textContent = 'Add Recipe';
@@ -915,6 +922,7 @@ function openAdd() {
   document.getElementById('add-panel').classList.add('open');
 }
 function closeAdd() {
+  showFab();
   editMode = false;
   editId   = null;
   document.getElementById('add-panel').classList.remove('open');
@@ -1045,11 +1053,13 @@ function openDetail(id) {
   document.getElementById('detail-view').classList.add('open');
   document.getElementById('detail-view').scrollTop = 0;
   document.getElementById('back-btn').style.display = 'flex';
+  hideFab();
 }
 
 function closeDetail() {
   document.getElementById('detail-view').classList.remove('open');
   document.getElementById('back-btn').style.display = 'none';
+  showFab();
   currentId = null;
 }
 
@@ -1094,6 +1104,7 @@ function deleteCurrentRecipe() {
 //  GITHUB SYNC
 // ════════════════════════════════════════
 function openSync() {
+  hideFab();
   if (ghConfig) {
     document.getElementById('gh-user').value  = ghConfig.user  || '';
     document.getElementById('gh-repo').value  = ghConfig.repo  || '';
@@ -1104,6 +1115,7 @@ function openSync() {
   document.getElementById('sync-panel').classList.add('open');
 }
 function closeSync() {
+  showFab();
   document.getElementById('sync-panel').classList.remove('open');
 }
 
@@ -1228,7 +1240,7 @@ function toast(msg, type='') {
 // ════════════════════════════════════════
 document.querySelectorAll('.panel-overlay').forEach(overlay => {
   overlay.addEventListener('click', e => {
-    if (e.target === overlay) overlay.classList.remove('open');
+    if (e.target === overlay) { overlay.classList.remove('open'); showFab(); }
   });
 });
 
@@ -1247,11 +1259,13 @@ let shopSelections = {}; // { recipeId: servings }
 let shopItems = load(SHOP_KEY, []); // { id, name, qty, from, checked, manual }
 
 function openShopList() {
+  hideFab();
   renderShopRecipes();
   renderShopItems();
   document.getElementById('shop-panel').classList.add('open');
 }
 function closeShopList() {
+  showFab();
   document.getElementById('shop-panel').classList.remove('open');
 }
 
