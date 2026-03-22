@@ -1003,7 +1003,8 @@ function parseIngredientLine(line) {
     return { subheading: line.replace(/^##\s*/, '').trim(), name: '', qty: '', baseQty: '' };
   }
   // "200g chicken breast" or "2 tbsp oil" or "Chicken breast — 200g"
-  const dash = line.match(/^(.+?)\s*[—\-–:]\s*(.+)$/);
+  // Only split on em-dash, en-dash or colon — NOT regular hyphen (breaks "plant-based milk")
+  const dash = line.match(/^(.+?)\s*[—–:]\s*(.+)$/);
   if (dash) return { name: dash[1].trim(), qty: dash[2].trim(), baseQty: dash[2].trim() };
 
   const qtyFirst = line.match(/^(\d[\d\/\.\s]*(?:g|kg|ml|l|tsp|tbsp|cup|cups|cloves?|sheets?|pieces?|bunch|head|pinch|handful|cm|L|oz|lb)?\.?)\s+(.+)$/i);
@@ -1014,15 +1015,24 @@ function parseIngredientLine(line) {
 
 function scaleQty(qtyStr, ratio) {
   if (!qtyStr) return '';
-  // Extract leading number, multiply, reassemble
   const m = qtyStr.match(/^([\d\.\/]+)(.*)/);
   if (!m) return qtyStr;
   let num = m[1].includes('/') ? eval(m[1]) : parseFloat(m[1]);
   if (isNaN(num)) return qtyStr;
-  num = Math.round(num * ratio * 8) / 8; // round to nearest 1/8
-  // Format nicely
-  const formatted = num % 1 === 0 ? num.toString() :
-    num < 1 ? toFraction(num) : Math.floor(num) + ' ' + toFraction(num % 1);
+  const scaled = num * ratio;
+  let formatted;
+  if (scaled >= 10) {
+    // Large quantities: round to whole number
+    formatted = Math.round(scaled).toString();
+  } else if (scaled % 1 === 0) {
+    formatted = scaled.toString();
+  } else {
+    // Small quantities: use fractions
+    const rounded = Math.round(scaled * 8) / 8;
+    formatted = rounded < 1
+      ? toFraction(rounded)
+      : Math.floor(rounded) + ' ' + toFraction(rounded % 1);
+  }
   return formatted + m[2];
 }
 
@@ -1352,10 +1362,14 @@ function generateList() {
     if (!r) return;
     const ratio = shopSelections[id] / (r.servings || 4);
     (r.ingredients || []).forEach(ing => {
+      // Skip subheadings
+      if (ing.subheading) return;
+      if (!ing.name || !ing.name.trim()) return;
       const key = ing.name.toLowerCase().trim();
       const scaledQty = scaleQty(ing.baseQty || ing.qty || '', ratio);
       if (merged[key]) {
-        merged[key].from.push(r.name);
+        // Only add recipe name if not already in the list
+        if (!merged[key].from.includes(r.name)) merged[key].from.push(r.name);
       } else {
         merged[key] = {
           id:      Date.now().toString() + Math.random().toString(36).slice(2),
@@ -1366,7 +1380,7 @@ function generateList() {
           manual:  false
         };
       }
-    });
+    });;
   });
 
   // Keep manual items, replace recipe items
