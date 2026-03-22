@@ -91,10 +91,7 @@ body {
 .icon-btn:hover, .icon-btn.active { background: var(--surface2); color: var(--text); }
 
 /* ── Search bar ── */
-.search-wrap {
-  padding: 10px 0;
-  background: var(--bg);
-}
+/* search-wrap moved to inline flow */
 .search-input {
   width: 100%;
   background: var(--surface);
@@ -613,12 +610,36 @@ body {
     display: block;
   }
 
+
+  /* Category filter tabs */
+  #cat-tabs::-webkit-scrollbar { display: none; }
+  .cat-tab {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .cat-tab:active { transform: scale(0.95); }
+  .cat-tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
-<!-- Fixed header + search bar -->
+<!-- Fixed header only — no search bar -->
 <div class="app-header-fixed">
   <div class="app-header-inner">
     <div class="header">
@@ -629,15 +650,31 @@ body {
         <button class="icon-btn" onclick="openSync()" title="Sync">☁️</button>
       </div>
     </div>
-    <div class="search-wrap" style="position:relative">
-      <span class="search-icon">🔍</span>
-      <input class="search-input" id="search" placeholder="Search recipes…" oninput="renderGrid()" />
     </div>
   </div>
 </div>
 
 <!-- Scrollable content -->
 <div class="app">
+
+  <!-- Search bar (in normal flow, not fixed) -->
+  <div style="padding:12px 16px 0;position:relative">
+    <span style="position:absolute;left:28px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px;pointer-events:none">🔍</span>
+    <input class="search-input" id="search" placeholder="Search recipes…" oninput="renderGrid()" style="padding-left:38px" />
+  </div>
+
+  <!-- Category filter tabs -->
+  <div id="cat-tabs" style="display:flex;gap:6px;padding:10px 16px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch">
+    <button class="cat-tab active" onclick="setCategory('all')" id="cat-all">All</button>
+    <button class="cat-tab" onclick="setCategory('Breakfast')" id="cat-Breakfast">☀️ Breakfast</button>
+    <button class="cat-tab" onclick="setCategory('Lunch')" id="cat-Lunch">🥗 Lunch</button>
+    <button class="cat-tab" onclick="setCategory('Dinner')" id="cat-Dinner">🍽️ Dinner</button>
+    <button class="cat-tab" onclick="setCategory('Dessert')" id="cat-Dessert">🍰 Dessert</button>
+    <button class="cat-tab" onclick="setCategory('Snack')" id="cat-Snack">🍎 Snack</button>
+    <button class="cat-tab" onclick="setCategory('Baking')" id="cat-Baking">🍞 Baking</button>
+    <button class="cat-tab" onclick="setCategory('Side')" id="cat-Side">🥦 Side</button>
+  </div>
+
   <!-- Recipe grid -->
   <div class="recipe-grid" id="grid"></div>
 </div><!-- /app -->
@@ -854,6 +891,7 @@ const R_KEY  = 'cookbook_recipes_v1';
 const GH_KEY = 'cookbook_gh_v1';
 
 let recipes      = load(R_KEY,  []);
+let activeCategory = 'all';
 let ghConfig     = load(GH_KEY, null);
 let currentId    = null;
 let baseServings = 4;
@@ -870,15 +908,25 @@ function saveGH(cfg)   { persist(GH_KEY, cfg); ghConfig = cfg; }
 // ════════════════════════════════════════
 //  RENDER GRID
 // ════════════════════════════════════════
+function setCategory(cat) {
+  activeCategory = cat;
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+  const btn = document.getElementById('cat-' + cat);
+  if (btn) btn.classList.add('active');
+  renderGrid();
+}
+
 function renderGrid() {
   const q   = (document.getElementById('search').value || '').toLowerCase();
   const grid = document.getElementById('grid');
-  const list = recipes.filter(r =>
-    !q ||
-    r.name.toLowerCase().includes(q) ||
-    (r.tags || []).some(t => t.toLowerCase().includes(q)) ||
-    (r.category || '').toLowerCase().includes(q)
-  );
+  const list = recipes.filter(r => {
+    const matchesSearch = !q ||
+      r.name.toLowerCase().includes(q) ||
+      (r.tags || []).some(t => t.toLowerCase().includes(q)) ||
+      (r.category || '').toLowerCase().includes(q);
+    const matchesCat = activeCategory === 'all' || r.category === activeCategory;
+    return matchesSearch && matchesCat;
+  });
 
   if (!list.length) {
     grid.innerHTML = `<div class="empty">
