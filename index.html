@@ -551,14 +551,7 @@ body {
   .add-item-row input::placeholder { color: var(--muted); }
 
 
-  /* Add to list button in detail */
-  .detail-addlist {
-    position: absolute; top: 16px; right: 104px;
-    width: 38px; height: 38px; border-radius: 10px;
-    background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
-    border: none; color: var(--accent2); font-size: 18px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-  }
+
   /* Edit button */
   .detail-edit {
     position: absolute; top: 16px; right: 62px;
@@ -956,7 +949,6 @@ body {
   <div class="detail-hero" id="detail-hero">🍽️</div>
   <button class="detail-back" onclick="closeDetail()">←</button>
   <button class="detail-edit" onclick="openEdit()" title="Edit">✏️</button>
-  <button class="detail-addlist" onclick="addCurrentToShopList()" title="Add to shopping list">🛒</button>
   <button class="detail-delete" onclick="deleteCurrentRecipe()" title="Delete">🗑</button>
   <div class="detail-content">
     <div class="detail-name" id="detail-name"></div>
@@ -970,6 +962,10 @@ body {
         <span class="srv-count" id="srv-count">4</span>
         <button class="srv-btn" onclick="changeServings(1)">+</button>
       </div>
+      <button class="btn btn-primary" onclick="addCurrentToShopList()"
+        style="padding:8px 14px;font-size:13px;margin-left:10px;border-radius:10px">
+        🛒 Add to List
+      </button>
     </div>
 
     <div class="section-heading">Ingredients</div>
@@ -1322,28 +1318,47 @@ function openDetail(id) {
   document.getElementById('detail-view').scrollTop = 0;
   document.getElementById('back-btn').style.display = 'flex';
   hideFab();
-  // Update add-to-list button state
-  setTimeout(() => {
-    const btn = document.querySelector('.detail-addlist');
-    if (btn) btn.style.color = shopSelections[id] !== undefined ? 'var(--accent)' : 'var(--accent2)';
-  }, 50);
+
 }
 
 
 function addCurrentToShopList() {
   const r = recipes.find(r => r.id === currentId);
   if (!r) return;
-  // Toggle: if already selected, deselect; if not, select with default servings
-  if (shopSelections[currentId] !== undefined) {
-    delete shopSelections[currentId];
-    toast(r.name + ' removed from selection');
-  } else {
-    shopSelections[currentId] = curServings || r.servings || 4;
-    toast(r.name + ' added — go to List tab and tap Generate ✓', 'success');
-  }
-  // Update the 🛒 button to show active state
+  const ratio = curServings / (r.servings || 4);
+
+  // Merge ingredients directly into shopItems
+  (r.ingredients || []).forEach(ing => {
+    if (ing.subheading || !ing.name.trim()) return;
+    const key = ing.name.toLowerCase().trim();
+    const existing = shopItems.find(i => i.name.toLowerCase().trim() === key && !i.checked);
+    if (existing) {
+      // Already in list — just note the extra recipe source
+      if (!existing.from.includes(r.name)) existing.from.push(r.name);
+    } else {
+      shopItems.push({
+        id:      Date.now().toString() + Math.random().toString(36).slice(2),
+        name:    ing.name,
+        qty:     scaleQty(ing.baseQty || ing.qty || '', ratio),
+        from:    [r.name],
+        checked: false,
+        manual:  false
+      });
+    }
+  });
+
+  persist(SHOP_KEY, shopItems);
+  renderShopPage();
+  updateListBadge();
+
+  // Update button to show added state briefly
   const btn = document.querySelector('.detail-addlist');
-  if (btn) btn.style.color = shopSelections[currentId] !== undefined ? 'var(--accent)' : 'var(--accent2)';
+  if (btn) {
+    btn.textContent = '✓';
+    btn.style.color = 'var(--green)';
+    setTimeout(() => { btn.textContent = '🛒'; btn.style.color = 'var(--accent2)'; }, 1500);
+  }
+  toast(r.name + ' added to shopping list ✓', 'success');
 }
 
 function closeDetail() {
@@ -2825,21 +2840,7 @@ window.addEventListener('resize', fixHeaderOffset);
   </div>
   <div class="page-body">
     <!-- Recipe selector -->
-    <!-- Recipe selector (collapsible) -->
-    <div style="margin-bottom:12px">
-      <button class="btn btn-secondary btn-full" onclick="toggleRecipeSelector()"
-        style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px"
-        id="recipe-selector-toggle">
-        <span>🍽️ Select recipes to add</span>
-        <span id="recipe-selector-arrow" style="font-size:18px;transition:transform 0.2s">▾</span>
-      </button>
-      <div id="shop-recipe-select" style="display:none;border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;overflow:hidden">
-        <div id="shop-recipe-list2" style="max-height:260px;overflow-y:auto;padding:8px 12px"></div>
-        <div style="padding:8px 12px 12px">
-          <button class="btn btn-primary btn-full" onclick="generateList()">Generate List →</button>
-        </div>
-      </div>
-    </div>
+
     <!-- Progress -->
     <div class="list-progress" id="list-progress2" style="display:none">
       <div class="list-progress-label">
