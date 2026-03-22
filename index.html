@@ -212,7 +212,7 @@ body {
   display: none;
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.65);
-  z-index: 300;
+  z-index: 350;
   align-items: flex-end;
 }
 .panel-overlay.open { display: flex; }
@@ -309,7 +309,7 @@ body {
   display: none;
   position: fixed; inset: 0;
   background: var(--bg);
-  z-index: 300;
+  z-index: 280;
   overflow-y: auto;
   max-width: 500px;
   margin: 0 auto;
@@ -597,6 +597,22 @@ body {
   }
   .ocr-progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 99px; transition: width 0.3s; }
 
+
+  /* Ingredient subheadings */
+  .ing-subheading {
+    grid-column: 1 / -1;
+    font-family: 'Lora', serif;
+    font-size: 13px;
+    font-style: italic;
+    font-weight: 600;
+    color: var(--accent2);
+    padding: 10px 0 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2px;
+    list-style: none;
+    display: block;
+  }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -731,8 +747,8 @@ body {
         </div>
       </div>
       <div class="field">
-        <label>Ingredients (one per line, qty first)</label>
-        <textarea id="add-ingredients" rows="6" placeholder="200g chicken breast&#10;2 cloves garlic&#10;1 tbsp olive oil&#10;Salt and pepper"></textarea>
+        <label>Ingredients (one per line · use ## for section headings)</label>
+        <textarea id="add-ingredients" rows="6" placeholder="## For the sauce&#10;200g chicken breast&#10;2 cloves garlic&#10;## For the salad&#10;1 tbsp olive oil&#10;Salt and pepper"></textarea>
       </div>
       <div class="field">
         <label>Method (one step per line)</label>
@@ -982,6 +998,10 @@ function clearAddForm() {
 //  INGREDIENT PARSING
 // ════════════════════════════════════════
 function parseIngredientLine(line) {
+  // Lines starting with ## are section subheadings
+  if (/^##\s*/.test(line)) {
+    return { subheading: line.replace(/^##\s*/, '').trim(), name: '', qty: '', baseQty: '' };
+  }
   // "200g chicken breast" or "2 tbsp oil" or "Chicken breast — 200g"
   const dash = line.match(/^(.+?)\s*[—\-–:]\s*(.+)$/);
   if (dash) return { name: dash[1].trim(), qty: dash[2].trim(), baseQty: dash[2].trim() };
@@ -1055,11 +1075,15 @@ function closeDetail() {
 
 function renderIngredients(r, ratio) {
   const ul = document.getElementById('detail-ingredients');
-  ul.innerHTML = (r.ingredients || []).map(ing => `
-    <li>
+  ul.innerHTML = (r.ingredients || []).map(ing => {
+    if (ing.subheading) {
+      return `<li class="ing-subheading">${ing.subheading}</li>`;
+    }
+    return `<li>
       <span class="ing-name">${ing.name}</span>
       <span class="ing-qty">${scaleQty(ing.baseQty || ing.qty, ratio)}</span>
-    </li>`).join('');
+    </li>`;
+  }).join('');
 }
 
 function renderMethod(r) {
