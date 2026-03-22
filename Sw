@@ -1,0 +1,60 @@
+// ── Mise Cookbook Service Worker ──
+// Bump this version number every time you push an update to GitHub.
+// The app will detect the change and reload automatically.
+const VERSION = 'v1';
+const CACHE   = 'cookbook-' + VERSION;
+
+// Files to cache for offline use
+const ASSETS = [
+  './',
+  './index.html'
+];
+
+// Install — cache core assets
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE).then(cache => cache.addAll(ASSETS))
+  );
+  // Take over immediately without waiting for old tabs to close
+  self.skipWaiting();
+});
+
+// Activate — delete old caches
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+
+// Fetch — network first, fall back to cache
+// This means the app always tries to get the latest version
+self.addEventListener('fetch', event => {
+  // Only handle same-origin requests
+  if (!event.request.url.startsWith(self.location.origin)) return;
+
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        // Cache a fresh copy
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE).then(cache => cache.put(event.request, copy));
+        }
+        return response;
+      })
+      .catch(() => {
+        // Network failed — serve from cache
+        return caches.match(event.request);
+      })
+  );
+});
+
+// Allow the page to trigger an immediate update
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
