@@ -552,6 +552,16 @@ body {
 
 
 
+  @keyframes flashGreen {
+    0%   { background: var(--accent); transform: scale(1); }
+    30%  { background: var(--green);  transform: scale(1.08); }
+    70%  { background: var(--green);  transform: scale(1.08); }
+    100% { background: var(--accent); transform: scale(1); }
+  }
+  .btn-flash {
+    animation: flashGreen 0.6s ease forwards;
+  }
+
   /* Edit button */
   .detail-edit {
     position: absolute; top: 16px; right: 62px;
@@ -1351,12 +1361,15 @@ function addCurrentToShopList() {
   renderShopPage();
   updateListBadge();
 
-  // Update button to show added state briefly
-  const btn = document.querySelector('.detail-addlist');
+  // Flash the button green
+  const btn = document.querySelector('.servings-row .btn-primary');
   if (btn) {
-    btn.textContent = '✓';
-    btn.style.color = 'var(--green)';
-    setTimeout(() => { btn.textContent = '🛒'; btn.style.color = 'var(--accent2)'; }, 1500);
+    btn.textContent = '✓ Added';
+    btn.classList.add('btn-flash');
+    setTimeout(() => {
+      btn.textContent = '🛒 Add to List';
+      btn.classList.remove('btn-flash');
+    }, 1200);
   }
   toast(r.name + ' added to shopping list ✓', 'success');
 }
@@ -1442,7 +1455,7 @@ function deletePantryItem(id) {
   renderPantry();
 }
 
-function addPantryToList(id) {
+function addPantryToList(id, btnEl) {
   const p = pantryItems.find(i => i.id === id);
   if (!p) return;
   // Don't duplicate if already in list
@@ -1459,6 +1472,15 @@ function addPantryToList(id) {
   persist(SHOP_KEY, shopItems);
   updateListBadge();
   renderShopPage();
+  // Flash the button green
+  if (btnEl) {
+    btnEl.textContent = '✓';
+    btnEl.classList.add('btn-flash');
+    setTimeout(() => {
+      btnEl.textContent = '+';
+      btnEl.classList.remove('btn-flash');
+    }, 1200);
+  }
   toast(p.name + ' added to list ✓', 'success');
 }
 
@@ -1491,7 +1513,7 @@ function renderPantry() {
           ${p.qty ? `<div class="pantry-item-qty">${p.qty}</div>` : ''}
         </div>
         <button class="pantry-del-btn" onclick="deletePantryItem('${p.id}')" title="Remove from pantry">✕</button>
-        <button class="pantry-add-btn" onclick="addPantryToList('${p.id}')" title="Add to shopping list">+</button>
+        <button class="pantry-add-btn" onclick="addPantryToList('${p.id}', this)" title="Add to shopping list">+</button>
       </div>`;
     });
   });
@@ -2623,7 +2645,7 @@ function renderPantryPage() {
           ${p.qty ? `<div class="pantry-item-qty">${p.qty}</div>` : ''}
         </div>
         <button class="pantry-del-btn" onclick="deletePantryItem('${p.id}')" title="Remove">✕</button>
-        <button class="pantry-add-btn" onclick="addPantryToList('${p.id}');switchMainTab('shop')" title="Add to list">+</button>
+        <button class="pantry-add-btn" onclick="addPantryToList('${p.id}', this);switchMainTab('shop')" title="Add to list">+</button>
       </div>`;
     });
   });
