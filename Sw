@@ -1,7 +1,7 @@
 // ── Mise Cookbook Service Worker ──
 // Bump this version number every time you push an update to GitHub.
 // The app will detect the change and reload automatically.
-const VERSION = 'v8';
+const VERSION = 'v9';
 const CACHE   = 'cookbook-' + VERSION;
 
 // Files to cache for offline use
