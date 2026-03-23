@@ -745,33 +745,29 @@ body {
   .page-body { padding: 16px 20px; }
 
 
-  /* ── Added popup ── */
-  .added-popup {
-    position: fixed;
-    pointer-events: none;
-    z-index: 999;
+
+  /* ── Added confirmation label ── */
+  @keyframes riseAndFade {
+    0%   { opacity: 0; transform: translateY(0)   scale(0.85); }
+    20%  { opacity: 1; transform: translateY(-8px) scale(1); }
+    65%  { opacity: 1; transform: translateY(-14px) scale(1); }
+    100% { opacity: 0; transform: translateY(-24px) scale(0.9); }
+  }
+  .added-label {
+    position: absolute;
+    left: 50%; transform: translateX(-50%);
+    bottom: calc(100% + 6px);
     background: var(--green);
     color: #fff;
     font-family: 'Nunito', sans-serif;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 800;
-    padding: 10px 20px;
+    padding: 5px 14px;
     border-radius: 99px;
-    box-shadow: 0 4px 20px rgba(110,175,122,0.5);
-    opacity: 0;
-    transform: translateY(0px) scale(0.8);
-    transition: none;
     white-space: nowrap;
-  }
-  .added-popup.pop-in {
-    animation: popIn 1.4s ease forwards;
-  }
-  @keyframes popIn {
-    0%   { opacity: 0;   transform: translateY(0px)  scale(0.8); }
-    15%  { opacity: 1;   transform: translateY(-16px) scale(1.08); }
-    40%  { opacity: 1;   transform: translateY(-22px) scale(1); }
-    75%  { opacity: 1;   transform: translateY(-26px) scale(1); }
-    100% { opacity: 0;   transform: translateY(-36px) scale(0.9); }
+    pointer-events: none;
+    animation: riseAndFade 1.5s ease forwards;
+    z-index: 10;
   }
 
 </style>
@@ -1367,19 +1363,22 @@ function openDetail(id) {
 
 
 function showAddedPopup(anchorEl) {
-  const popup = document.getElementById('added-popup');
-  if (!popup) return;
+  if (!anchorEl) return;
+  // Ensure the parent is position:relative so absolute child works
+  const parent = anchorEl.parentElement;
+  if (parent) parent.style.position = 'relative';
 
-  // Position above the anchor button
-  const rect = anchorEl.getBoundingClientRect();
-  popup.style.left = (rect.left + rect.width / 2) + 'px';
-  popup.style.top  = (rect.top + window.scrollY) + 'px';
-  popup.style.transform = 'translateX(-50%) translateY(0px) scale(0.8)';
+  // Remove any existing label on this button
+  const existing = parent && parent.querySelector('.added-label');
+  if (existing) existing.remove();
 
-  // Reset and trigger animation
-  popup.classList.remove('pop-in');
-  void popup.offsetWidth; // force reflow
-  popup.classList.add('pop-in');
+  const label = document.createElement('span');
+  label.className = 'added-label';
+  label.textContent = '✓ Added';
+  // Insert right after the button
+  anchorEl.insertAdjacentElement('afterend', label);
+  // Remove from DOM after animation completes
+  setTimeout(() => label.remove(), 1600);
 }
 
 function addCurrentToShopList() {
@@ -3058,6 +3057,5 @@ window.addEventListener('resize', fixHeaderOffset);
 </div>
 
 
-<div class="added-popup" id="added-popup">✓ Added to list</div>
 </body>
 </html>
