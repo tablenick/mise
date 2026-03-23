@@ -553,13 +553,14 @@ body {
 
 
   @keyframes flashGreen {
-    0%   { background: var(--accent); transform: scale(1); }
-    30%  { background: var(--green);  transform: scale(1.08); }
-    70%  { background: var(--green);  transform: scale(1.08); }
-    100% { background: var(--accent); transform: scale(1); }
+    0%   { box-shadow: 0 0 0 0px rgba(110,175,122,0); transform: scale(1); }
+    25%  { box-shadow: 0 0 0 4px rgba(110,175,122,0.7); transform: scale(1.07); background: var(--green) !important; }
+    75%  { box-shadow: 0 0 0 4px rgba(110,175,122,0.5); transform: scale(1.07); background: var(--green) !important; }
+    100% { box-shadow: 0 0 0 0px rgba(110,175,122,0); transform: scale(1); }
   }
   .btn-flash {
-    animation: flashGreen 0.6s ease forwards;
+    animation: flashGreen 0.7s ease forwards !important;
+    transition: none !important;
   }
 
   /* Edit button */
@@ -972,7 +973,7 @@ body {
         <span class="srv-count" id="srv-count">4</span>
         <button class="srv-btn" onclick="changeServings(1)">+</button>
       </div>
-      <button class="btn btn-primary" onclick="addCurrentToShopList()"
+      <button class="btn btn-primary" id="add-to-list-btn" onclick="addCurrentToShopList()"
         style="padding:8px 14px;font-size:13px;margin-left:10px;border-radius:10px">
         🛒 Add to List
       </button>
@@ -1364,7 +1365,7 @@ function addCurrentToShopList() {
   updateListBadge();
 
   // Flash the button green
-  const btn = document.querySelector('.servings-row .btn-primary');
+  const btn = document.getElementById('add-to-list-btn');
   if (btn) {
     btn.textContent = '✓ Added';
     btn.classList.add('btn-flash');
@@ -2763,7 +2764,17 @@ function updateListBadge() {
 
 // Init badge
 updateListBadge();
-if (ghConfig) { setSyncBadge2(true); }
+if (ghConfig) {
+  setSyncBadge2(true);
+  // Auto-pull pantry from GitHub on load if we have a config
+  ghGetFile('pantry.json').then(data => {
+    if (Array.isArray(data) && data.length > 0) {
+      pantryItems = data;
+      savePantry();
+      if (activeMainTab === 'pantry') renderPantryPage();
+    }
+  }).catch(() => { /* pantry.json not on GitHub yet — use local */ });
+}
 
 // Dynamically match app padding-top to fixed header height
 function fixHeaderOffset() {
