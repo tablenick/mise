@@ -744,6 +744,36 @@ body {
   }
   .page-body { padding: 16px 20px; }
 
+
+  /* ── Added popup ── */
+  .added-popup {
+    position: fixed;
+    pointer-events: none;
+    z-index: 999;
+    background: var(--green);
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    padding: 10px 20px;
+    border-radius: 99px;
+    box-shadow: 0 4px 20px rgba(110,175,122,0.5);
+    opacity: 0;
+    transform: translateY(0px) scale(0.8);
+    transition: none;
+    white-space: nowrap;
+  }
+  .added-popup.pop-in {
+    animation: popIn 1.4s ease forwards;
+  }
+  @keyframes popIn {
+    0%   { opacity: 0;   transform: translateY(0px)  scale(0.8); }
+    15%  { opacity: 1;   transform: translateY(-16px) scale(1.08); }
+    40%  { opacity: 1;   transform: translateY(-22px) scale(1); }
+    75%  { opacity: 1;   transform: translateY(-26px) scale(1); }
+    100% { opacity: 0;   transform: translateY(-36px) scale(0.9); }
+  }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -1335,6 +1365,23 @@ function openDetail(id) {
 }
 
 
+
+function showAddedPopup(anchorEl) {
+  const popup = document.getElementById('added-popup');
+  if (!popup) return;
+
+  // Position above the anchor button
+  const rect = anchorEl.getBoundingClientRect();
+  popup.style.left = (rect.left + rect.width / 2) + 'px';
+  popup.style.top  = (rect.top + window.scrollY) + 'px';
+  popup.style.transform = 'translateX(-50%) translateY(0px) scale(0.8)';
+
+  // Reset and trigger animation
+  popup.classList.remove('pop-in');
+  void popup.offsetWidth; // force reflow
+  popup.classList.add('pop-in');
+}
+
 function addCurrentToShopList() {
   const r = recipes.find(r => r.id === currentId);
   if (!r) return;
@@ -1364,17 +1411,9 @@ function addCurrentToShopList() {
   renderShopPage();
   updateListBadge();
 
-  // Flash the button green
+  // Show added popup above the button
   const btn = document.getElementById('add-to-list-btn');
-  if (btn) {
-    btn.textContent = '✓ Added';
-    btn.classList.add('btn-flash');
-    setTimeout(() => {
-      btn.textContent = '🛒 Add to List';
-      btn.classList.remove('btn-flash');
-    }, 1200);
-  }
-  toast(r.name + ' added to shopping list ✓', 'success');
+  if (btn) showAddedPopup(btn);
 }
 
 function closeDetail() {
@@ -1475,16 +1514,8 @@ function addPantryToList(id, btnEl) {
   persist(SHOP_KEY, shopItems);
   updateListBadge();
   renderShopPage();
-  // Flash the button green
-  if (btnEl) {
-    btnEl.textContent = '✓';
-    btnEl.classList.add('btn-flash');
-    setTimeout(() => {
-      btnEl.textContent = '+';
-      btnEl.classList.remove('btn-flash');
-    }, 1200);
-  }
-  toast(p.name + ' added to list ✓', 'success');
+  // Show added popup above the button
+  if (btnEl) showAddedPopup(btnEl);
 }
 
 const CAT_EMOJI = {
@@ -3027,5 +3058,6 @@ window.addEventListener('resize', fixHeaderOffset);
 </div>
 
 
+<div class="added-popup" id="added-popup">✓ Added to list</div>
 </body>
 </html>
