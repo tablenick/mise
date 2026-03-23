@@ -9,27 +9,27 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Cookbook">
-<meta name="theme-color" content="#1C1917">
+<meta name="theme-color" content="#F2F0ED">
 <title>Cookbook</title>
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400;1,600&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:       #1C1917;
-  --surface:  #292524;
-  --surface2: #3C3735;
-  --border:   #44403C;
-  --text:     #F5F0EB;
-  --muted:    #A8A29E;
-  --accent:   #E07B3F;
-  --accent2:  #F5A76C;
-  --green:    #6EAF7A;
-  --red:      #E07070;
-  --r:        14px;
+  --bg:       #F2F0ED;
+  --surface:  #FFFFFF;
+  --surface2: #E8E6E2;
+  --border:   #111111;
+  --text:     #111111;
+  --muted:    #666666;
+  --accent:   #D92B2B;
+  --accent2:  #D92B2B;
+  --green:    #1A7A3C;
+  --red:      #D92B2B;
+  --r:        0px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 body {
-  font-family: 'Nunito', sans-serif;
+  font-family: 'Barlow', sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -41,11 +41,11 @@ body {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 200;
-  background: var(--bg);
+  background: var(--accent);
   display: flex;
   flex-direction: column;
   align-items: center;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 3px solid var(--border);
 }
 .app-header-inner {
   width: 100%;
@@ -66,14 +66,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
 }
 .header-title {
-  font-family: 'Lora', serif;
-  font-size: 26px;
-  font-weight: 600;
-  color: var(--text);
-  letter-spacing: -0.3px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  font-weight: 400;
+  color: #ffffff;
+  letter-spacing: 3px;
+  text-transform: uppercase;
 }
 .header-title em {
   color: var(--accent);
@@ -82,8 +83,8 @@ body {
 .header-actions { display: flex; gap: 8px; }
 .icon-btn {
   width: 38px; height: 38px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
+  border-radius: 0
+  border: 2px solid var(--border);
   background: var(--surface);
   color: var(--muted);
   font-size: 18px;
@@ -98,10 +99,10 @@ body {
 .search-input {
   width: 100%;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border: 2px solid var(--border);
+  border-radius: 0
   padding: 10px 14px 10px 38px;
-  font-family: 'Nunito', sans-serif;
+  font-family: 'Barlow', sans-serif;
   font-size: 14px;
   color: var(--text);
   outline: none;
@@ -129,15 +130,15 @@ body {
 }
 .recipe-card {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
+  border: 2px solid var(--border);
+  border-radius: 0
   overflow: hidden;
   cursor: pointer;
   transition: transform 0.15s, border-color 0.15s;
   animation: fadeIn 0.3s ease both;
 }
 .recipe-card:active { transform: scale(0.97); }
-.recipe-card:hover { border-color: var(--accent); }
+.recipe-card:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0px var(--border); }
 @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
 
 .card-img {
@@ -154,12 +155,13 @@ body {
 }
 .card-body { padding: 10px 10px 12px; }
 .card-name {
-  font-family: 'Lora', serif;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.3;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.2;
   color: var(--text);
   margin-bottom: 4px;
+  letter-spacing: 0.5px;
 }
 .card-meta { font-size: 11px; color: var(--muted); }
 .card-tags { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
@@ -167,7 +169,7 @@ body {
   font-size: 10px;
   font-weight: 700;
   padding: 2px 7px;
-  border-radius: 99px;
+  border-radius: 2px
   background: var(--surface2);
   color: var(--muted);
   text-transform: uppercase;
@@ -182,7 +184,7 @@ body {
   color: var(--muted);
 }
 .empty-icon { font-size: 48px; margin-bottom: 12px; }
-.empty h3 { font-family: 'Lora', serif; font-size: 20px; color: var(--text); margin-bottom: 8px; }
+.empty h3 { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--text); margin-bottom: 8px; }
 .empty p { font-size: 14px; line-height: 1.6; }
 
 /* ── FAB ── */
@@ -218,7 +220,7 @@ body {
 .panel-overlay.open { display: flex; }
 .panel {
   background: var(--surface);
-  border-radius: 20px 20px 0 0;
+  border-radius: 0
   width: 100%;
   max-width: 500px;
   margin: 0 auto;
@@ -228,17 +230,17 @@ body {
   animation: slideUp 0.25s ease;
 }
 @keyframes slideUp { from { transform: translateY(60px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-.panel-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 14px auto 0; }
+.panel-handle { width: 36px; height: 4px; background: var(--border); border-radius: 0 margin: 14px auto 0; }
 .panel-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 20px 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
 }
-.panel-title { font-family: 'Lora', serif; font-size: 19px; font-weight: 600; }
+.panel-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; font-weight: 400; letter-spacing: 2px; text-transform: uppercase; }
 .close-btn {
   width: 32px; height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
+  border-radius: 0
+  border: 2px solid var(--border);
   background: var(--surface2);
   color: var(--muted);
   font-size: 16px;
@@ -261,10 +263,10 @@ body {
 .field input, .field textarea, .field select {
   width: 100%;
   background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border: 2px solid var(--border);
+  border-radius: 0
   padding: 10px 13px;
-  font-family: 'Nunito', sans-serif;
+  font-family: 'Barlow', sans-serif;
   font-size: 14px;
   color: var(--text);
   outline: none;
@@ -277,18 +279,18 @@ body {
 
 /* ── Buttons ── */
 .btn {
-  border: none; border-radius: 10px;
-  font-family: 'Nunito', sans-serif;
+  border: none; border-radius: 0
+  font-family: 'Barlow', sans-serif;
   font-weight: 700; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   transition: all 0.15s;
   font-size: 14px; padding: 11px 18px;
 }
 .btn:active { transform: scale(0.96); }
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-primary:hover { background: #d06a2e; }
-.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-.btn-green { background: var(--green); color: #fff; }
+.btn-primary { background: var(--accent); color: #fff; font-weight: 700; letter-spacing: 0.5px; }
+.btn-primary:hover { background: #B52222; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 2px solid var(--border); }
+.btn-green { background: var(--green); color: #fff; font-weight: 700; letter-spacing: 0.5px; }
 .btn-red { background: var(--red); color: #fff; }
 .btn-full { width: 100%; }
 .btn-row { display: flex; gap: 8px; }
@@ -308,7 +310,7 @@ body {
 .detail-view {
   display: none;
   position: fixed; inset: 0;
-  background: var(--bg);
+  background: var(--surface);
   z-index: 280;
   overflow-y: auto;
   max-width: 500px;
@@ -332,7 +334,7 @@ body {
 .detail-back {
   position: absolute; top: 16px; left: 16px;
   width: 38px; height: 38px;
-  border-radius: 10px;
+  border-radius: 0
   background: rgba(0,0,0,0.5);
   backdrop-filter: blur(8px);
   border: none; color: #fff;
@@ -342,7 +344,7 @@ body {
 .detail-delete {
   position: absolute; top: 16px; right: 16px;
   width: 38px; height: 38px;
-  border-radius: 10px;
+  border-radius: 0
   background: rgba(0,0,0,0.5);
   backdrop-filter: blur(8px);
   border: none; color: #E07070;
@@ -351,7 +353,7 @@ body {
 }
 .detail-content { padding: 20px 20px 60px; }
 .detail-name {
-  font-family: 'Lora', serif;
+  font-family: 'Bebas Neue', sans-serif;
   font-size: 26px;
   font-weight: 600;
   line-height: 1.2;
@@ -364,8 +366,8 @@ body {
 .servings-row {
   display: flex; align-items: center; gap: 12px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  border: 2px solid var(--border);
+  border-radius: 0
   padding: 12px 16px;
   margin-bottom: 20px;
 }
@@ -373,8 +375,8 @@ body {
 .servings-ctrl { display: flex; align-items: center; gap: 10px; }
 .srv-btn {
   width: 32px; height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
+  border-radius: 0
+  border: 2px solid var(--border);
   background: var(--surface2);
   color: var(--text);
   font-size: 18px;
@@ -388,14 +390,14 @@ body {
 
 /* Section headings */
 .section-heading {
-  font-family: 'Lora', serif;
+  font-family: 'Bebas Neue', sans-serif;
   font-size: 17px;
   font-weight: 600;
   font-style: italic;
   color: var(--accent2);
   margin-bottom: 12px;
   padding-bottom: 6px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
 }
 
 /* Ingredients */
@@ -403,13 +405,13 @@ body {
 .ingredient-list li {
   display: flex; justify-content: space-between; align-items: baseline;
   padding: 8px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
   font-size: 14px;
   gap: 10px;
 }
 .ingredient-list li:last-child { border-bottom: none; }
 .ing-name { color: var(--text); }
-.ing-qty { color: var(--accent2); font-weight: 600; font-size: 13px; white-space: nowrap; }
+.ing-qty { color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; font-family: 'DM Mono', monospace; }
 
 /* Method steps */
 .method-list { list-style: none; margin-bottom: 24px; }
@@ -432,7 +434,7 @@ body {
 
 /* ── GitHub sync panel ── */
 .sync-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.sync-status { font-size: 12px; padding: 4px 10px; border-radius: 99px; font-weight: 600; }
+.sync-status { font-size: 12px; padding: 4px 10px; border-radius: 2px font-weight: 600; }
 .sync-status.connected { background: rgba(110,175,122,0.2); color: var(--green); }
 .sync-status.disconnected { background: var(--surface2); color: var(--muted); }
 
@@ -442,10 +444,10 @@ body {
   bottom: 90px;
   left: 50%; transform: translateX(-50%);
   background: var(--surface2);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   color: var(--text);
   padding: 10px 18px;
-  border-radius: 99px;
+  border-radius: 2px
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
@@ -455,16 +457,16 @@ body {
   pointer-events: none;
 }
 .toast.show { opacity: 1; }
-.toast.success { background: rgba(110,175,122,0.25); border-color: var(--green); color: var(--green); }
-.toast.error   { background: rgba(224,112,112,0.2);  border-color: var(--red);   color: var(--red); }
+.toast.success { background: var(--green); color: #fff; border: none; }
+.toast.error   { background: var(--red); color: #fff; border: none; }
 
   /* ── Shopping list ── */
   .shop-recipe-row {
     display: flex; align-items: center; gap: 12px;
     padding: 11px 14px;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    border: 2px solid var(--border);
+    border-radius: 0
     margin-bottom: 8px;
     cursor: pointer;
     transition: border-color 0.15s;
@@ -473,7 +475,7 @@ body {
   .shop-recipe-row .recipe-check {
     width: 22px; height: 22px;
     border: 2px solid var(--border);
-    border-radius: 6px;
+    border-radius: 0
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0; font-size: 13px; transition: all 0.15s;
   }
@@ -483,8 +485,8 @@ body {
   .shop-recipe-row .recipe-rsub { font-size: 11px; color: var(--muted); margin-top: 2px; }
   .shop-srv-ctrl { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
   .shop-srv-ctrl button {
-    width: 26px; height: 26px; border-radius: 6px;
-    border: 1px solid var(--border); background: var(--surface2);
+    width: 26px; height: 26px; border-radius: 0
+    border: 2px solid var(--border); background: var(--surface2);
     color: var(--text); font-size: 15px; font-weight: 700;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
     transition: all 0.12s;
@@ -504,8 +506,8 @@ body {
     display: flex; align-items: center; gap: 12px;
     padding: 11px 14px;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    border: 2px solid var(--border);
+    border-radius: 0
     margin-bottom: 7px;
     cursor: pointer;
     transition: all 0.15s;
@@ -514,7 +516,7 @@ body {
   .list-item.checked { opacity: 0.45; }
   .list-item .item-box {
     width: 24px; height: 24px;
-    border: 2px solid var(--border); border-radius: 6px;
+    border: 2px solid var(--border); border-radius: 0
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0; font-size: 13px; transition: all 0.15s;
   }
@@ -526,12 +528,12 @@ body {
 
   /* Progress bar */
   .list-progress { margin-bottom: 16px; }
-  .list-progress-bar { height: 5px; background: var(--surface2); border-radius: 99px; overflow: hidden; margin-top: 5px; }
-  .list-progress-fill { height: 100%; background: var(--green); border-radius: 99px; transition: width 0.3s; }
+  .list-progress-bar { height: 5px; background: var(--surface2); border-radius: 2px overflow: hidden; margin-top: 5px; }
+  .list-progress-fill { height: 100%; background: var(--green); border-radius: 2px transition: width 0.3s; }
   .list-progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
 
   /* Tab bar inside panel */
-  .panel-tabs { display: flex; border-bottom: 1px solid var(--border); margin: 0 -20px; padding: 0 20px; margin-bottom: 16px; }
+  .panel-tabs { display: flex; border-bottom: 2px solid var(--border); margin: 0 -20px; padding: 0 20px; margin-bottom: 16px; }
   .panel-tab {
     flex: 1; padding: 10px 8px; text-align: center;
     font-size: 13px; font-weight: 700; color: var(--muted);
@@ -543,9 +545,9 @@ body {
   /* Add manual item */
   .add-item-row { display: flex; gap: 8px; margin-bottom: 14px; }
   .add-item-row input {
-    flex: 1; background: var(--bg); border: 1px solid var(--border);
-    border-radius: 10px; padding: 9px 13px;
-    font-family: 'Nunito', sans-serif; font-size: 14px; color: var(--text); outline: none;
+    flex: 1; background: var(--bg); border: 2px solid var(--border);
+    border-radius: 0 padding: 9px 13px;
+    font-family: 'Barlow', sans-serif; font-size: 14px; color: var(--text); outline: none;
   }
   .add-item-row input:focus { border-color: var(--accent); }
   .add-item-row input::placeholder { color: var(--muted); }
@@ -567,7 +569,7 @@ body {
   .detail-edit {
     position: absolute; top: 16px; right: 62px;
     width: 38px; height: 38px;
-    border-radius: 10px;
+    border-radius: 0
     background: rgba(0,0,0,0.5);
     backdrop-filter: blur(8px);
     border: none; color: var(--accent2);
@@ -579,7 +581,7 @@ body {
   /* Photo import */
   .photo-import-zone {
     border: 2px dashed var(--border);
-    border-radius: 12px;
+    border-radius: 0
     padding: 18px 16px;
     text-align: center;
     cursor: pointer;
@@ -590,7 +592,7 @@ body {
   }
   .photo-import-zone:hover { border-color: var(--accent); background: rgba(224,123,63,0.05); }
   .photo-import-zone.has-image { border-color: var(--accent); padding: 0; overflow: hidden; }
-  .photo-import-zone img { width: 100%; max-height: 180px; object-fit: cover; display: block; border-radius: 10px; }
+  .photo-import-zone img { width: 100%; max-height: 180px; object-fit: cover; display: block; border-radius: 0 }
   .photo-import-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
   .photo-zone-icon { font-size: 28px; margin-bottom: 6px; }
   .photo-zone-title { font-size: 14px; font-weight: 700; color: var(--accent2); margin-bottom: 2px; }
@@ -605,21 +607,21 @@ body {
   }
   .ocr-progress {
     margin-top: 10px; margin-bottom: 4px;
-    height: 4px; background: var(--surface2); border-radius: 99px; overflow: hidden; display: none;
+    height: 4px; background: var(--surface2); border-radius: 2px overflow: hidden; display: none;
   }
-  .ocr-progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 99px; transition: width 0.3s; }
+  .ocr-progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 2px transition: width 0.3s; }
 
 
   /* Ingredient subheadings */
   .ing-subheading {
     grid-column: 1 / -1;
-    font-family: 'Lora', serif;
+    font-family: 'Bebas Neue', sans-serif;
     font-size: 13px;
     font-style: italic;
     font-weight: 600;
     color: var(--accent2);
     padding: 10px 0 4px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 2px solid var(--border);
     margin-bottom: 2px;
     list-style: none;
     display: block;
@@ -631,11 +633,11 @@ body {
   .cat-tab {
     flex-shrink: 0;
     padding: 6px 14px;
-    border-radius: 99px;
-    border: 1px solid var(--border);
+    border-radius: 2px
+    border: 2px solid var(--border);
     background: var(--surface);
     color: var(--muted);
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Barlow', sans-serif;
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
@@ -662,8 +664,8 @@ body {
     display: flex; align-items: center; gap: 10px;
     padding: 10px 12px;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    border: 2px solid var(--border);
+    border-radius: 0
     margin-bottom: 6px;
     transition: border-color 0.15s;
   }
@@ -672,7 +674,7 @@ body {
   .pantry-item-name { font-size: 14px; font-weight: 600; }
   .pantry-item-qty  { font-size: 12px; color: var(--muted); margin-top: 1px; }
   .pantry-add-btn {
-    width: 32px; height: 32px; border-radius: 8px;
+    width: 32px; height: 32px; border-radius: 0
     background: var(--accent); color: #fff; border: none;
     font-size: 20px; cursor: pointer; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
@@ -680,8 +682,8 @@ body {
   }
   .pantry-add-btn:active { transform: scale(0.88); }
   .pantry-del-btn {
-    width: 28px; height: 28px; border-radius: 8px;
-    background: var(--surface2); color: var(--muted); border: 1px solid var(--border);
+    width: 28px; height: 28px; border-radius: 0
+    background: var(--surface2); color: var(--muted); border: 2px solid var(--border);
     font-size: 14px; cursor: pointer; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
     transition: all 0.12s;
@@ -696,8 +698,8 @@ body {
     transform: translateX(-50%);
     width: 100%; max-width: 500px;
     display: flex;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
+    background: var(--bg);
+    border-top: 3px solid var(--border);
     z-index: 250;
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
@@ -705,13 +707,13 @@ body {
     flex: 1; background: none; border: none;
     padding: 10px 4px 12px;
     display: flex; flex-direction: column; align-items: center; gap: 3px;
-    font-family: 'Nunito', sans-serif; font-size: 10px; font-weight: 700;
+    font-family: 'Barlow', sans-serif; font-size: 10px; font-weight: 700;
     color: var(--muted); cursor: pointer;
     text-transform: uppercase; letter-spacing: 0.5px;
     transition: color 0.15s;
   }
   .nav-btn .nav-icon { font-size: 22px; line-height: 1; }
-  .nav-btn.active { color: var(--accent); }
+  .nav-btn.active { color: var(--accent); font-weight: 700; }
   .nav-btn .nav-dot {
     width: 5px; height: 5px; border-radius: 50%;
     background: transparent; margin-top: 1px;
@@ -723,6 +725,7 @@ body {
     display: none;
     position: fixed; inset: 0;
     background: var(--bg);
+
     z-index: 240;
     overflow-y: auto;
     max-width: 500px;
@@ -733,13 +736,13 @@ body {
   .page-header {
     position: sticky; top: 0;
     background: var(--bg);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 2px solid var(--border);
     padding: 16px 20px 12px;
     display: flex; align-items: center; justify-content: space-between;
     z-index: 10;
   }
   .page-header h2 {
-    font-family: 'Lora', serif;
+    font-family: 'Bebas Neue', sans-serif;
     font-size: 20px; font-weight: 600;
   }
   .page-body { padding: 16px 20px; }
@@ -759,11 +762,11 @@ body {
     bottom: calc(100% + 6px);
     background: var(--green);
     color: #fff;
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Barlow', sans-serif;
     font-size: 13px;
     font-weight: 800;
     padding: 5px 14px;
-    border-radius: 99px;
+    border-radius: 2px
     white-space: nowrap;
     pointer-events: none;
     animation: riseAndFade 1.5s ease forwards;
@@ -805,7 +808,7 @@ body {
 <div class="app-header-fixed">
   <div class="app-header-inner">
     <div class="header">
-      <div class="header-title">My <em>Cookbook</em></div>
+      <div class="header-title">MY COOKBOOK</div>
       <div class="header-actions">
         <button class="icon-btn" onclick="closeDetail()" id="back-btn" title="Back to recipes" style="display:none">←</button>
         
@@ -899,7 +902,7 @@ body {
       <!-- Website URL import -->
       <div style="display:flex;gap:8px;margin-bottom:6px">
         <input id="url-import-input"
-          style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 13px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none"
+          style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius: 0padding:10px 13px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none"
           placeholder="Paste recipe URL…"
           onkeydown="if(event.key==='Enter')scrapeRecipeURL()"
           onfocus="this.style.borderColor='var(--accent)'"
@@ -916,7 +919,7 @@ body {
         <label>Recipe Photo</label>
         <div id="recipe-photo-wrap" style="display:flex;gap:10px;align-items:center">
           <div id="recipe-photo-preview"
-            style="width:72px;height:72px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;overflow:hidden;cursor:pointer"
+            style="width:72px;height:72px;border-radius: 0background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;overflow:hidden;cursor:pointer"
             onclick="document.getElementById('recipe-photo-input').click()" title="Tap to add photo">
             📷
           </div>
@@ -1000,30 +1003,7 @@ body {
         <button class="srv-btn" onclick="changeServings(1)">+</button>
       </div>
       <button class="btn btn-primary" id="add-to-list-btn" onclick="addCurrentToShopList()"
-        style="padding:8px 14px;font-size:13px;margin-left:10px;border-radius:10px">
-        🛒 Add to List
-      </button>
-    </div>
-
-    <div class="section-heading">Ingredients</div>
-    <ul class="ingredient-list" id="detail-ingredients"></ul>
-
-    <div class="section-heading">Method</div>
-    <ol class="method-list" id="detail-method"></ol>
-  </div>
-</div>
-
-<!-- ══ SYNC PANEL ══ -->
-<div class="panel-overlay" id="sync-panel">
-  <div class="panel">
-    <div class="panel-handle"></div>
-    <div class="panel-header">
-      <span class="panel-title">GitHub Sync</span>
-      <button class="close-btn" onclick="closeSync()">✕</button>
-    </div>
-    <div class="panel-body">
-      <div class="sync-row">
-        <span style="font-size:13px;color:var(--muted)">Status</span>
+        style="padding:8px 14px;font-size:13px;margin-left:10px;border-radius: 0color:var(--muted)">Status</span>
         <span class="sync-status disconnected" id="sync-status-badge">Not connected</span>
       </div>
 
@@ -2165,7 +2145,7 @@ function renderPhotoStrip() {
 
   strip.innerHTML = importPhotos.map((p, i) => `
     <div style="position:relative;width:72px;height:72px;flex-shrink:0">
-      <img src="${p.dataUrl}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:block">
+      <img src="${p.dataUrl}" style="width:72px;height:72px;object-fit:cover;border-radius: 0border:1px solid var(--border);display:block">
       <div style="position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,0.65);color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px">p.${i+1}</div>
       <button onclick="removePhoto(${i})"
         style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
@@ -2825,7 +2805,7 @@ window.addEventListener('resize', fixHeaderOffset);
       <div class="panel-tabs">
         <div class="panel-tab active" id="stab-build" onclick="switchShopTab('build')">Recipes</div>
         <div class="panel-tab" id="stab-list" onclick="switchShopTab('list')">
-          List <span id="list-badge" style="display:none;background:var(--accent);color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;margin-left:4px">0</span>
+          List <span id="list-badge" style="display:none;background:var(--accent);color:#fff;font-size:10px;padding:1px 6px;border-radius: 2pxmargin-left:4px">0</span>
         </div>
         <div class="panel-tab" id="stab-pantry" onclick="switchShopTab('pantry')">🥫 Pantry</div>
       </div>
@@ -2856,15 +2836,15 @@ window.addEventListener('resize', fixHeaderOffset);
         <!-- Add manual item -->
         <div style="display:flex;gap:6px;margin-bottom:6px">
           <input id="manual-item" placeholder="Item name…"
-            style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none"
+            style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius: 0padding:9px 12px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none"
             onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
             onkeydown="if(event.key==='Enter')addManualItem()" />
           <input id="manual-qty" placeholder="Qty"
-            style="width:58px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:9px 8px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none;text-align:center"
+            style="width:58px;background:var(--bg);border:1px solid var(--border);border-radius: 0padding:9px 8px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none;text-align:center"
             onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
             onkeydown="if(event.key==='Enter')addManualItem()" />
           <select id="manual-unit"
-            style="width:72px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:9px 4px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text);outline:none;appearance:none;text-align:center">
+            style="width:72px;background:var(--bg);border:1px solid var(--border);border-radius: 0padding:9px 4px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text);outline:none;appearance:none;text-align:center">
             <option value="">—</option>
             <option value="g">g</option>
             <option value="kg">kg</option>
@@ -2875,12 +2855,11 @@ window.addEventListener('resize', fixHeaderOffset);
             <option value="cup">cup</option>
             <option value="pcs">pcs</option>
           </select>
-          <button class="btn btn-primary" style="padding:9px 13px;font-size:20px;border-radius:10px;flex-shrink:0" onclick="addManualItem()">+</button>
+          <button class="btn btn-primary" style="padding:9px 13px;font-size:20px;border-radius: 0flex-shrink:0" onclick="addManualItem()">+</button>
         </div>
 
         <!-- Live sync bar -->
-        <div id="live-sync-bar" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px">
-          <span style="font-size:13px;font-weight:700;flex:1;color:var(--text)">🛒 Shop together</span>
+        <div id="live-sync-bar" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius: 0font-weight:700;flex:1;color:var(--text)">🛒 Shop together</span>
           <span id="live-sync-status" style="font-size:11px;color:var(--muted)">Off</span>
           <button id="live-sync-btn" class="btn btn-secondary" style="font-size:12px;padding:5px 12px" onclick="toggleLiveSync()">Start</button>
         </div>
@@ -2900,40 +2879,27 @@ window.addEventListener('resize', fixHeaderOffset);
         </p>
         <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
           <input id="pantry-name" placeholder="Item name…"
-            style="flex:1;min-width:110px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 11px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text);outline:none"
+            style="flex:1;min-width:110px;background:var(--bg);border:1px solid var(--border);border-radius: 0padding:8px 11px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text);outline:none"
             onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
             onkeydown="if(event.key==='Enter')addPantryItem()" />
           <input id="pantry-qty" placeholder="Qty"
-            style="width:50px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 6px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text);outline:none;text-align:center"
+            style="width:50px;background:var(--bg);border:1px solid var(--border);border-radius: 0padding:8px 6px;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text);outline:none;text-align:center"
             onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
           <select id="pantry-unit"
-            style="width:60px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 4px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none;appearance:none;text-align:center">
+            style="width:60px;background:var(--bg);border:1px solid var(--border);border-radius: 0padding:8px 4px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none;appearance:none;text-align:center">
             <option value="">—</option><option value="g">g</option><option value="kg">kg</option>
             <option value="ml">ml</option><option value="L">L</option><option value="tsp">tsp</option>
             <option value="tbsp">tbsp</option><option value="cup">cup</option><option value="bag">bag</option>
             <option value="can">can</option><option value="bunch">bunch</option><option value="pack">pack</option>
           </select>
           <select id="pantry-cat"
-            style="width:88px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 4px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none;appearance:none">
+            style="width:88px;background:var(--bg);border:1px solid var(--border);border-radius: 0padding:8px 4px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none;appearance:none">
             <option value="Produce">🥦 Produce</option><option value="Pantry">🫙 Pantry</option>
             <option value="Dairy">🥛 Dairy</option><option value="Meat">🥩 Meat</option>
             <option value="Frozen">🧊 Frozen</option><option value="Bakery">🍞 Bakery</option>
             <option value="Other">📦 Other</option>
           </select>
-          <button class="btn btn-primary" style="padding:8px 14px;font-size:18px;border-radius:10px" onclick="addPantryItem()">+</button>
-        </div>
-        <div id="pantry-list"></div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<!-- ══ SHOPPING PAGE ══ -->
-<div class="page-view" id="page-shop">
-  <div class="page-header">
-    <h2>Shopping List</h2>
-    <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px" onclick="clearCheckedItems()">Clear done</button>
+          <button class="btn btn-primary" style="padding:8px 14px;font-size:18px;border-radius: 0padding:6px 12px" onclick="clearCheckedItems()">Clear done</button>
   </div>
   <div class="page-body">
     <!-- Recipe selector -->
@@ -2949,24 +2915,20 @@ window.addEventListener('resize', fixHeaderOffset);
     <!-- Manual add -->
     <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
       <input id="manual-item2" placeholder="Item name…"
-        style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none"
+        style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius: 0padding:9px 12px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none"
         onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
         onkeydown="if(event.key==='Enter')addManualItem2()" />
       <input id="manual-qty2" placeholder="Qty"
-        style="width:52px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 6px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none;text-align:center"
+        style="width:52px;background:var(--surface);border:1px solid var(--border);border-radius: 0padding:9px 6px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none;text-align:center"
         onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
       <select id="manual-unit2"
-        style="width:66px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 4px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none;appearance:none;text-align:center">
+        style="width:66px;background:var(--surface);border:1px solid var(--border);border-radius: 0padding:9px 4px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none;appearance:none;text-align:center">
         <option value="">—</option><option value="g">g</option><option value="kg">kg</option>
         <option value="ml">ml</option><option value="L">L</option><option value="tsp">tsp</option>
         <option value="tbsp">tbsp</option><option value="cup">cup</option><option value="bag">bag</option>
         <option value="can">can</option><option value="bunch">bunch</option><option value="pack">pack</option>
       </select>
-      <button class="btn btn-primary" style="padding:9px 14px;font-size:20px;border-radius:10px" onclick="addManualItem2()">+</button>
-    </div>
-    <!-- List items -->
-    <div id="shop-list-items2"></div>
-    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-primary" style="padding:9px 14px;font-size:20px;border-radius: 0gap:8px;margin-top:10px">
       <button class="btn btn-secondary" style="flex:1;font-size:13px" onclick="clearCheckedItems()">Clear done</button>
       <button class="btn btn-secondary" style="flex:1;font-size:13px" onclick="clearAllItems()">Clear all</button>
     </div>
@@ -2996,21 +2958,21 @@ window.addEventListener('resize', fixHeaderOffset);
     </p>
     <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
       <input id="pantry-name2" placeholder="Item name…"
-        style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none"
+        style="flex:1;min-width:120px;background:var(--surface);border:1px solid var(--border);border-radius: 0padding:9px 12px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none"
         onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
         onkeydown="if(event.key==='Enter')addPantryItem2()" />
       <input id="pantry-qty2" type="number" min="1" value="1" placeholder="Qty"
-        style="width:58px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 6px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none;text-align:center"
+        style="width:58px;background:var(--surface);border:1px solid var(--border);border-radius: 0padding:9px 6px;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);outline:none;text-align:center"
         onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
       <select id="pantry-unit2"
-        style="width:66px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 4px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none;appearance:none;text-align:center">
+        style="width:66px;background:var(--surface);border:1px solid var(--border);border-radius: 0padding:9px 4px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none;appearance:none;text-align:center">
         <option value="">—</option><option value="g">g</option><option value="kg">kg</option>
         <option value="ml">ml</option><option value="L">L</option><option value="tsp">tsp</option>
         <option value="tbsp">tbsp</option><option value="cup">cup</option><option value="bag">bag</option>
         <option value="can">can</option><option value="bunch">bunch</option><option value="pack">pack</option>
       </select>
       <select id="pantry-cat2"
-        style="width:92px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 4px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none;appearance:none">
+        style="width:92px;background:var(--surface);border:1px solid var(--border);border-radius: 0padding:9px 4px;font-family:'Nunito',sans-serif;font-size:12px;color:var(--text);outline:none;appearance:none">
         <option value="Produce">🥦 Produce</option><option value="Pantry">🫙 Pantry</option>
         <option value="Dairy">🥛 Dairy</option><option value="Meat">🥩 Meat</option>
         <option value="Frozen">🧊 Frozen</option><option value="Bakery">🍞 Bakery</option>
@@ -3018,17 +2980,7 @@ window.addEventListener('resize', fixHeaderOffset);
         <option value="Smoothie">🥤 Smoothie</option>
         <option value="Other">📦 Other</option>
       </select>
-      <button class="btn btn-primary" style="padding:9px 14px;font-size:20px;border-radius:10px" onclick="addPantryItem2()">+</button>
-    </div>
-    <div id="pantry-list2"></div>
-  </div>
-</div>
-
-<!-- ══ SYNC PAGE ══ -->
-<div class="page-view" id="page-sync">
-  <div class="page-header"><h2>Sync</h2></div>
-  <div class="page-body">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <button class="btn btn-primary" style="padding:9px 14px;font-size:20px;border-radius: 0align-items:center;justify-content:space-between;margin-bottom:14px">
       <span style="font-size:13px;color:var(--muted)">GitHub status</span>
       <span class="sync-status disconnected" id="sync-status-badge2">Not connected</span>
     </div>
